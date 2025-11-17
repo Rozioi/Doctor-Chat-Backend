@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:postgres@localhost:5432/doctor_chat_db"
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  telegramId    String         @unique
+  username      String?
+  firstName     String?
+  phoneNumber   String?
+  lastName      String?
+  photoUrl      String?
+  role          Role           @default(PATIENT)
+  createdAt     DateTime       @default(now())
+  doctorProfile DoctorProfile?
+  chats         Chat[]         @relation("PatientChats")
+  doctorChats   Chat[]          @relation("DoctorChats")
+}
+
+model DoctorProfile {
+  id              Int      @id @default(autoincrement())
+  user            User     @relation(fields: [userId], references: [id])
+  userId          Int      @unique
+  specialization  String
+  qualification   String
+  experience      Int // Years of experience
+  description     String   @db.Text
+  education       String
+  certificates    String[] // Array of certificate URLs or descriptions
+  rating          Float?   @default(0)
+  country         String
+  consultationFee Decimal  @db.Decimal(10, 2)
+  isAvailable     Boolean  @default(true)
+  cardNumber      String?  // Номер карты для вывода средств
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Chat {
+  id            Int      @id @default(autoincrement())
+  patientId     Int
+  doctorId      Int
+  patient       User     @relation("PatientChats", fields: [patientId], references: [id])
+  doctor        User     @relation("DoctorChats", fields: [doctorId], references: [id])
+  telegramChatId String? // ID чата в Telegram
+  serviceType   String   // "consultation" или "analysis"
+  amount        Decimal  @db.Decimal(10, 2)
+  status        ChatStatus @default(ACTIVE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum ChatStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
