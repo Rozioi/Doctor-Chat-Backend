@@ -51,7 +51,24 @@ export const ChatRepo = {
       throw new Error("Failed to get chats");
     }
   },
-
+  async getChatByDoctorAndPatientId(doctorId: number, patientId: number) {
+    try {
+      const chat = await prisma.chat.findFirst({
+        where: { doctorId, patientId },
+        include: {
+          patient: true,
+          doctor: {
+            include: {
+              doctorProfile: true,
+            },
+          },
+        },
+      });
+      return chat;
+    } catch (error) {
+      throw new Error("Failed to get chat");
+    }
+  },
   async getChatsByDoctorId(doctorId: number) {
     try {
       const chats = await prisma.chat.findMany({
@@ -72,4 +89,3 @@ export const ChatRepo = {
     }
   },
 };
-

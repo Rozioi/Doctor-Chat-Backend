@@ -129,6 +129,7 @@ export const userController = {
           error: "User not found",
         });
       }
+
       const isSameTelegramData = user.telegramId === telegramId;
       const isSamePhoneNumber = user.phoneNumber === phoneNumber;
       console.log(isSamePhoneNumber, isSameTelegramData);
@@ -156,7 +157,12 @@ export const userController = {
   async updateUser(
     req: FastifyRequest<{
       Params: { telegramId: string };
-      Body: { photoUrl?: string; firstName?: string; lastName?: string; phoneNumber?: string };
+      Body: {
+        photoUrl?: string;
+        firstName?: string;
+        lastName?: string;
+        phoneNumber?: string;
+      };
     }>,
     reply: FastifyReply,
   ) {

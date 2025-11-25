@@ -5,6 +5,7 @@ import { FastifyRoute } from "./scripts/fastify-route";
 import { doctorRoutes } from "./modules/doctors/doctor.route";
 import { userRoutes } from "./modules/users/user.route";
 import { chatRoutes } from "./modules/chats/chat.route";
+import { paymentRoutes } from "./modules/payments/payment.route";
 import fastifyCors from "@fastify/cors";
 import { startBot } from "./bot/bot";
 import fastifyMultipart from "@fastify/multipart";
@@ -31,9 +32,13 @@ server.register(fastifyCors, {
   credentials: true,
   preflightContinue: false,
 });
-FastifyRoute({ fastify: server }, [doctorRoutes, userRoutes, chatRoutes], {
-  prefix: "/api/v1",
-});
+FastifyRoute(
+  { fastify: server },
+  [doctorRoutes, userRoutes, chatRoutes, paymentRoutes],
+  {
+    prefix: "/api/v1",
+  },
+);
 
 server.post("/upload", async (req, reply) => {
   const file = await req.file();

@@ -23,6 +23,8 @@ model User {
   doctorProfile DoctorProfile?
   chats         Chat[]         @relation("PatientChats")
   doctorChats   Chat[]          @relation("DoctorChats")
+  balance       Balance?
+  payments      Payment[]
 }
 
 model DoctorProfile {
@@ -54,6 +56,7 @@ model Chat {
   serviceType   String   // "consultation" или "analysis"
   amount        Decimal  @db.Decimal(10, 2)
   status        ChatStatus @default(ACTIVE)
+  payments      Payment[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -68,4 +71,41 @@ enum ChatStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+}
+
+model Balance {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Decimal  @default(0) @db.Decimal(10, 2)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id            Int          @id @default(autoincrement())
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId        Int?
+  chat          Chat?        @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  amount        Decimal      @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  description   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum PaymentMethod {
+  BALANCE
+  CARD
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
 }
