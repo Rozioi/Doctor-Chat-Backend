@@ -113,26 +113,24 @@ bot.callbackQuery("for_doctors", async (ctx) => {
     },
   );
 });
-
 bot.callbackQuery("contacts", async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.editMessageText(
-    `📞 Контактная информация:
+    `<b>📞 Контактная информация</b>
 
-*Для пациентов:*
-📧 support@rozioi.pro
+<b>Для пациентов и врачей:</b>
+📧 : doctor_chat@mail.ru
 🕒 Поддержка: 24/7
 
-*Для врачей:*
-📧 doctors@rozioi.pro
-🕒 Пн-Пт: 9:00-18:00
+<b>Для связи:</b>
+📞 : +7 702 294 0422
 
-*По вопросам сотрудничества:*
-📧 partnership@rozioi.pro
+<b>По вопросам сотрудничества:</b>
+📧 : doctor_chat@mail.ru
 
 Мы всегда на связи!`,
     {
-      parse_mode: "Markdown",
+      parse_mode: "HTML", // Меняем на HTML
       reply_markup: new InlineKeyboard()
         .webApp("👨‍⚕️ Перейти к платформе", "https://rozioi.pro")
         .row()
@@ -140,7 +138,6 @@ bot.callbackQuery("contacts", async (ctx) => {
     },
   );
 });
-
 bot.callbackQuery("back_to_main", async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.editMessageText(
@@ -154,7 +151,9 @@ bot.callbackQuery("back_to_main", async (ctx) => {
 });
 
 bot.on("message", async (ctx) => {
-  const message = ctx.message.text.toLowerCase();
+  const message = ctx.message.text?.toLowerCase();
+
+  if (!message) return;
 
   if (
     message.includes("врач") ||

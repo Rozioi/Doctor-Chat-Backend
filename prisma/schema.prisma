@@ -1,5 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -25,6 +23,9 @@ model User {
   doctorChats   Chat[]          @relation("DoctorChats")
   balance       Balance?
   payments      Payment[]
+  pdfDocuments  PDFDocument[]
+  reviewsGiven  Review[]        @relation("ReviewAuthor")
+  reviewsReceived Review[]       @relation("ReviewDoctor")
 }
 
 model DoctorProfile {
@@ -44,6 +45,7 @@ model DoctorProfile {
   cardNumber      String?  // Номер карты для вывода средств
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  reviews         Review[]
 }
 
 model Chat {
@@ -57,6 +59,8 @@ model Chat {
   amount        Decimal  @db.Decimal(10, 2)
   status        ChatStatus @default(ACTIVE)
   payments      Payment[]
+  pdfDocuments  PDFDocument[] @relation("ChatPDFDocuments")
+  reviews       Review[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -96,6 +100,27 @@ model Payment {
   updatedAt     DateTime     @updatedAt
 }
 
+model PDFDocument {
+  id            Int          @id @default(autoincrement())
+  filename      String       // Имя файла на диске
+  originalName  String       // Оригинальное имя файла
+  filePath      String       // Путь к файлу на сервере
+  fileSize      Int          // Размер файла в байтах
+  mimeType      String       @default("application/pdf")
+  documentType PDFDocumentType
+  userId        Int?         // Владелец документа (опционально)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  chatId        Int?         // Связанный чат (опционально)
+  chat          Chat?        @relation("ChatPDFDocuments", fields: [chatId], references: [id], onDelete: SetNull)
+  metadata      Json?        // Дополнительные метаданные в JSON
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([chatId])
+  @@index([documentType])
+}
+
 enum PaymentMethod {
   BALANCE
   CARD
@@ -108,4 +133,32 @@ enum PaymentStatus {
   FAILED
   CANCELLED
   REFUNDED
+}
+
+enum PDFDocumentType {
+  ANALYSIS_RESULT
+  CONSULTATION_REPORT
+  PRESCRIPTION
+  MEDICAL_CERTIFICATE
+  OTHER
+}
+
+model Review {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  doctorId    Int
+  doctorProfileId Int
+  chatId      Int?
+  patient     User     @relation("ReviewAuthor", fields: [patientId], references: [id])
+  doctor      User     @relation("ReviewDoctor", fields: [doctorId], references: [id])
+  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id])
+  chat        Chat?    @relation(fields: [chatId], references: [id])
+  rating      Int      // 1-5
+  comment     String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([doctorProfileId])
+  @@index([patientId])
+  @@index([chatId])
 }

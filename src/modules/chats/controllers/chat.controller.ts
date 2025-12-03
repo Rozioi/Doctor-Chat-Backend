@@ -29,16 +29,20 @@ export const ChatController = {
         return reply.status(404).send({ error: "Patient not found" });
       }
 
-      // Проверяем существование врача по ID профиля
       const doctorProfile = await DoctorRepo.getDoctorById(doctorId);
       if (!doctorProfile || !doctorProfile.userId) {
         return reply.status(404).send({ error: "Doctor not found" });
       }
 
-      // Получаем пользователя-врача
       const doctorUser = await userRepo.getUser(doctorProfile.userId);
       if (!doctorUser) {
         return reply.status(404).send({ error: "Doctor user not found" });
+      }
+
+      if (patient.id === doctorUser.id) {
+        return reply.status(400).send({
+          error: "Doctor cannot book appointment with themselves",
+        });
       }
 
       const chat = await ChatRepo.createChat({
@@ -96,17 +100,17 @@ export const ChatController = {
   async sendChatInvite(
     req: FastifyRequest<{
       Body: {
-        patientTelegramId: string;
+        patientId: number;
         doctorId: number;
       };
     }>,
     reply: FastifyReply,
   ) {
     try {
-      const { patientTelegramId, doctorId } = req.body;
+      const { patientId, doctorId } = req.body;
       const chat = await ChatRepo.getChatByDoctorAndPatientId(
         doctorId,
-        patientTelegramId,
+        patientId,
       );
       if (chat) {
         return reply.status(404).send({
@@ -114,10 +118,10 @@ export const ChatController = {
         });
       }
 
-      if (!patientTelegramId) {
+      if (!patientId) {
         return reply
           .status(400)
-          .send({ error: "Patient telegramId is required" });
+          .send({ error: "Patient patientId is required" });
       }
 
       if (!doctorId) {
@@ -131,8 +135,7 @@ export const ChatController = {
 
       const doctorUser = await userRepo.getUser(doctorProfile.userId);
 
-      // FIX: Use getUserByTelegramId instead of getUser with parsed int
-      const patientUser = await userRepo.getUserByTelegramId(patientTelegramId);
+      const patientUser = await userRepo.getUserById(patientId);
 
       if (
         !doctorUser ||
@@ -163,7 +166,7 @@ export const ChatController = {
         patientUser.firstName && patientUser.lastName
           ? `${patientUser.firstName} ${patientUser.lastName}`
           : patientUser.firstName || patientUser.username || "Пациент";
-
+      console.log(patientName, doctorName);
       await bot.api.sendMessage(
         doctorUser.telegramId, // No need to parse, already string
         `Пациент ${patientName} хочет начать чат с вами. Нажмите кнопку ниже, чтобы перейти в чат:`,
@@ -173,7 +176,7 @@ export const ChatController = {
       );
 
       await bot.api.sendMessage(
-        patientTelegramId, // No need to parse, already string
+        patientUser.telegramId, // No need to parse, already string
         `Вы хотите начать чат с врачом ${doctorName}. Нажмите кнопку ниже, чтобы перейти в чат:`,
         {
           reply_markup: keyboardUser,

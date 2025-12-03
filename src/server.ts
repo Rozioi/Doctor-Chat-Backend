@@ -1,4 +1,4 @@
-import fastify from "fastify";
+import fastify, { FastifyReply } from "fastify";
 import fs from "fs";
 import { prisma } from "./modules/common/prisma";
 import { FastifyRoute } from "./scripts/fastify-route";
@@ -6,6 +6,7 @@ import { doctorRoutes } from "./modules/doctors/doctor.route";
 import { userRoutes } from "./modules/users/user.route";
 import { chatRoutes } from "./modules/chats/chat.route";
 import { paymentRoutes } from "./modules/payments/payment.route";
+import { reviewRoutes } from "./modules/reviews/review.route";
 import fastifyCors from "@fastify/cors";
 import { startBot } from "./bot/bot";
 import fastifyMultipart from "@fastify/multipart";
@@ -34,7 +35,14 @@ server.register(fastifyCors, {
 });
 FastifyRoute(
   { fastify: server },
-  [doctorRoutes, userRoutes, chatRoutes, paymentRoutes],
+  [
+    doctorRoutes,
+    userRoutes,
+    chatRoutes,
+    paymentRoutes,
+    reviewRoutes,
+    // PDF теперь не через БД/роуты, а как обычные статические файлы в /uploads
+  ],
   {
     prefix: "/api/v1",
   },

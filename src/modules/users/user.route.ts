@@ -9,9 +9,9 @@ export const userRoutes: TRouteFunction = (
 ) => {
   fastify.get("/users/:id", userController.getUser);
   fastify.get("/users/check/:id", userController.getUserByTelegramId);
-
   fastify.post("/users", userController.createUser);
   fastify.post("/users/login", userController.login);
+  fastify.delete("/users/:id", userController.deleteUser);
   fastify.put("/users/:telegramId", userController.updateUser);
   done();
 };

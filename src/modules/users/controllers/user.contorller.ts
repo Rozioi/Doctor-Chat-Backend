@@ -186,4 +186,29 @@ export const userController = {
       });
     }
   },
+  async deleteUser(
+    req: FastifyRequest<{
+      Params: { id: string };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        return reply.status(400).send({ error: "id is required" });
+      }
+
+      const user = await userRepo.deleteUser(id);
+      return reply.status(200).send({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      req.log.error(error);
+      return reply.status(500).send({
+        error: error.message || "Failed to delete user",
+      });
+    }
+  },
 };
