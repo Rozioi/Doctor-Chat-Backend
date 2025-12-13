@@ -12,9 +12,14 @@ import { startBot } from "./bot/bot";
 import fastifyMultipart from "@fastify/multipart";
 import sharp from "sharp";
 import fastifyStatic from "@fastify/static";
+import dotenv from "dotenv";
+
 import path from "path";
 const server = fastify({ logger: true });
 const uploadsDir = path.join(process.cwd(), "uploads");
+
+dotenv.config();
+
 server.register(fastifyStatic, {
   root: uploadsDir,
   prefix: "/uploads",
@@ -27,6 +32,7 @@ server.register(fastifyCors, {
     "https://rozioi.pro",
     "http://localhost:3000",
     "http://localhost:5174",
+    "https://rampantly-reasonable-millipede.cloudpub.ru",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],

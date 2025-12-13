@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:postgres@localhost:5432/doctor_chat_db"
+  url = "postgresql://postgres:postgres@localhost:5432/postgres"
 }
 
 model User {

@@ -4,7 +4,10 @@ const bot = new Bot("8322768927:AAHy9zUG5Li0bFgW6gVYcvNKIQ_2r2bfaIc");
 
 const createMainKeyboard = () => {
   return new InlineKeyboard()
-    .webApp("👨‍⚕️ Найти врача", "https://rozioi.pro")
+    .webApp(
+      "👨‍⚕️ Найти врача",
+      "https://rampantly-reasonable-millipede.cloudpub.ru/",
+    )
     .row()
     .text("📋 Как это работает", "how_it_works")
     .text("💳 Гарантия оплаты", "payment_guarantee")
@@ -48,7 +51,10 @@ bot.callbackQuery("how_it_works", async (ctx) => {
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .webApp("👨‍⚕️ Найти врача", "https://rozioi.pro")
+        .webApp(
+          "👨‍⚕️ Найти врача",
+          "https://rampantly-reasonable-millipede.cloudpub.ru/",
+        )
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -77,7 +83,10 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .webApp("👨‍⚕️ Начать поиск", "https://rozioi.pro")
+        .webApp(
+          "👨‍⚕️ Начать поиск",
+          "https://rampantly-reasonable-millipede.cloudpub.ru/",
+        )
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -107,7 +116,10 @@ bot.callbackQuery("for_doctors", async (ctx) => {
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .url("📝 Регистрация врача", "https://rozioi.pro/doctor-registration")
+        .url(
+          "📝 Регистрация врача",
+          "https://rampantly-reasonable-millipede.cloudpub.ru//doctor-registration",
+        )
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -132,7 +144,10 @@ bot.callbackQuery("contacts", async (ctx) => {
     {
       parse_mode: "HTML", // Меняем на HTML
       reply_markup: new InlineKeyboard()
-        .webApp("👨‍⚕️ Перейти к платформе", "https://rozioi.pro")
+        .webApp(
+          "👨‍⚕️ Перейти к платформе",
+          "https://rampantly-reasonable-millipede.cloudpub.ru/",
+        )
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -165,7 +180,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().webApp(
           "👨‍⚕️ Найти врача",
-          "https://rozioi.pro",
+          "https://rampantly-reasonable-millipede.cloudpub.ru/",
         ),
       },
     );
@@ -193,7 +208,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().url(
           "📝 Регистрация врача",
-          "https://rozioi.pro/doctor-registration",
+          "https://rampantly-reasonable-millipede.cloudpub.ru//doctor-registration",
         ),
       },
     );
@@ -207,7 +222,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().webApp(
           "👨‍⚕️ Перейти к платформе",
-          "https://rozioi.pro",
+          "https://rampantly-reasonable-millipede.cloudpub.ru/",
         ),
       },
     );
