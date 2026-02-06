@@ -77,7 +77,7 @@ export const PaymentController = {
       }
 
       if (paymentMethod === PaymentMethod.BALANCE) {
-        const balance = await BalanceRepo.getBalanceByUserId(user.id);
+        const balance = await BalanceRepo.getBalanceByUserId(user.id as number);
         if (!balance) {
           return reply.status(404).send({ error: "Balance not found" });
         }
@@ -90,11 +90,11 @@ export const PaymentController = {
           });
         }
 
-        await BalanceRepo.subtractFromBalance(user.id, amount);
+        await BalanceRepo.subtractFromBalance(user.id as number, amount);
       }
 
       const payment = await PaymentRepo.createPayment({
-        userId: user.id,
+        userId: user.id as number,
         chatId,
         amount,
         paymentMethod,
@@ -183,13 +183,13 @@ export const PaymentController = {
         return reply.status(404).send({ error: "User not found" });
       }
 
-      const balance = await BalanceRepo.addToBalance(user.id, amount);
+      const balance = await BalanceRepo.addToBalance(user.id as number, amount);
       if (!balance) {
         return reply.status(500).send({ error: "Failed to update balance" });
       }
 
       await PaymentRepo.createPayment({
-        userId: user.id,
+        userId: user.id as number,
         amount,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         status: PaymentStatus.COMPLETED,
@@ -250,7 +250,7 @@ export const PaymentController = {
 
       // Create pending payment record
       const paymentData = {
-        userId: user.id,
+        userId: user.id as number,
         amount,
         paymentMethod: "ROBOKASSA" as PaymentMethod,
         status: PaymentStatus.PENDING,

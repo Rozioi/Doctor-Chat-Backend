@@ -52,13 +52,10 @@ export const ReviewRepo = {
 
   async getReviewByChatId(chatId: number) {
     try {
-      const review = await prisma.review.findUnique({
+      const review = await prisma.review.findFirst({
         where: { chatId },
-        include: {
-          patient: true,
-          doctor: true,
-        },
       });
+
       return review;
     } catch (error) {
       throw new Error("Failed to get review");
@@ -106,4 +103,3 @@ export const ReviewRepo = {
     }
   },
 };
-

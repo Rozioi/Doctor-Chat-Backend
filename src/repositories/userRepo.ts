@@ -3,7 +3,9 @@ import { User } from "../modules/users/types/user.types";
 
 export const userRepo = {
   async getUserById(id: string | number): Promise<User | null> {
-    return prisma.user.findUnique({ where: { id: parseInt(id) } });
+    const userId = typeof id === "string" ? parseInt(id) : id;
+    if (isNaN(userId)) return null;
+    return prisma.user.findUnique({ where: { id: userId } });
   },
   async createUser(data: User): Promise<User> {
     return prisma.user.create({ data });
@@ -71,8 +73,8 @@ export const userRepo = {
             await operation();
           } catch (error) {
             // Игнорируем ошибки "таблица не найдена"
-            if (!error.message?.includes("does not exist")) {
-              console.warn("Error in delete operation:", error.message);
+            if (!(error as any).message?.includes("does not exist")) {
+              console.warn("Error in delete operation:", (error as any).message);
             }
           }
         }

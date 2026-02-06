@@ -3,11 +3,11 @@ export type Role = "PATIENT" | "DOCTOR" | "ADMIN";
 export interface User {
   id?: number;
   telegramId: string;
-  username?: string;
-  firstName?: string;
-  phoneNumber?: string;
-  lastName?: string;
-  photoUrl?: string;
+  username?: string | null;
+  firstName?: string | null;
+  phoneNumber?: string | null;
+  lastName?: string | null;
+  photoUrl?: string | null;
   role: Role;
   createdAt: Date;
 }

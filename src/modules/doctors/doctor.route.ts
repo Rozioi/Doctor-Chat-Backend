@@ -9,8 +9,8 @@ export const doctorRoutes: TRouteFunction = (
 ) => {
   fastify.post("/doctors", DoctorControlller.createDoctor);
   fastify.get("/doctors", DoctorControlller.getDoctors);
-  fastify.get("/doctors/:id", DoctorControlller.getDoctorById);
-  fastify.get("/doctors/user/:userId", DoctorControlller.getDoctorByUserId);
+  fastify.get("/doctors/:id", DoctorControlller.getDoctorByIdRepo);
+  fastify.get("/doctors/user/:userId", DoctorControlller.getDoctorByUserIdRepo);
   fastify.put("/doctors/:id", DoctorControlller.updateDoctor);
   done();
 };

@@ -92,7 +92,7 @@ export const DoctorControlller = {
       return reply.status(500).send({ error: "Failed to get doctor" });
     }
   },
-  async getDoctorById(
+  async getDoctorByIdRepo(
     req: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
   ) {
@@ -128,7 +128,7 @@ export const DoctorControlller = {
       return reply.status(500).send({ error: "Failed to get doctor profile" });
     }
   },
-  async getDoctorByUserId(
+  async getDoctorByUserIdRepo(
     req: FastifyRequest<{ Params: { userId: string } }>,
     reply: FastifyReply,
   ) {

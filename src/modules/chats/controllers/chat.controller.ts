@@ -47,7 +47,7 @@ export const ChatController = {
 
       const chat = await ChatRepo.createChat({
         patientId: patient.id,
-        doctorId: doctorUser.id,
+        doctorId: doctorUser.id as number,
         serviceType,
         amount,
       });

@@ -55,7 +55,7 @@ export const ReviewController = {
       // Проверяем, что чат существует и принадлежит пациенту (если указан)
       if (chatId) {
         const chat = await ChatRepo.getChatByDoctorAndPatientId(
-          doctorUser.id,
+          doctorUser.id as number,
           patient.id,
         );
         if (!chat || chat.id !== chatId) {
@@ -77,7 +77,7 @@ export const ReviewController = {
 
       const review = await ReviewRepo.createReview({
         patientId: patient.id,
-        doctorId: doctorUser.id,
+        doctorId: doctorUser.id as number,
         doctorProfileId,
         chatId,
         rating,
@@ -103,9 +103,8 @@ export const ReviewController = {
         return reply.status(400).send({ error: "Invalid doctor profile ID" });
       }
 
-      const reviews = await ReviewRepo.getReviewsByDoctorProfileId(
-        doctorProfileId,
-      );
+      const reviews =
+        await ReviewRepo.getReviewsByDoctorProfileId(doctorProfileId);
       return reply.status(200).send(reviews);
     } catch (error: any) {
       req.log.error(error);
@@ -139,4 +138,3 @@ export const ReviewController = {
     }
   },
 };
-
