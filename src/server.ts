@@ -30,6 +30,7 @@ server.register(fastifyMultipart, {
 server.register(fastifyCors, {
   origin: [
     "https://rozioi.pro",
+    "*",
     "http://localhost:3000",
     "http://localhost:5174",
     "https://soundly-primary-protozoa.cloudpub.ru",
