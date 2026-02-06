@@ -33,6 +33,7 @@ server.register(fastifyCors, {
     "http://localhost:3000",
     "http://localhost:5174",
     "https://soundly-primary-protozoa.cloudpub.ru",
+    "https://doctor-chat-c-lient.vercel.app",
     "https://rampantly-reasonable-millipede.cloudpub.ru",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
