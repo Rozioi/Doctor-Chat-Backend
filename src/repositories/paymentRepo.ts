@@ -138,6 +138,32 @@ export const PaymentRepo = {
     }
   },
 
+  async updatePayment(id: number, data: any) {
+    try {
+      const payment = await prisma.payment.update({
+        where: { id },
+        data,
+        include: {
+          user: true,
+          chat: {
+            include: {
+              patient: true,
+              doctor: {
+                include: {
+                  doctorProfile: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return payment;
+    } catch (error) {
+      throw new Error("Failed to update payment");
+    }
+  },
+
   async getPaymentsByChatId(chatId: number) {
     try {
       const payments = await prisma.payment.findMany({

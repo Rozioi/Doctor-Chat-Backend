@@ -1,30 +1,29 @@
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = "postgresql://postgres:postgres@localhost:5432/postgres"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id            Int            @id @default(autoincrement())
-  telegramId    String         @unique
-  username      String?
-  firstName     String?
-  phoneNumber   String?
-  lastName      String?
-  photoUrl      String?
-  role          Role           @default(PATIENT)
-  createdAt     DateTime       @default(now())
-  doctorProfile DoctorProfile?
-  chats         Chat[]         @relation("PatientChats")
-  doctorChats   Chat[]          @relation("DoctorChats")
-  balance       Balance?
-  payments      Payment[]
-  pdfDocuments  PDFDocument[]
-  reviewsGiven  Review[]        @relation("ReviewAuthor")
+  id              Int            @id @default(autoincrement())
+  telegramId      String         @unique
+  username        String?
+  firstName       String?
+  phoneNumber     String?
+  lastName        String?
+  photoUrl        String?
+  role            Role           @default(PATIENT)
+  createdAt       DateTime       @default(now())
+  doctorProfile   DoctorProfile?
+  chats           Chat[]         @relation("PatientChats")
+  doctorChats     Chat[]         @relation("DoctorChats")
+  balance         Balance?
+  payments        Payment[]
+  pdfDocuments    PDFDocument[]
+  reviewsGiven    Review[]       @relation("ReviewAuthor")
   reviewsReceived Review[]       @relation("ReviewDoctor")
 }
 
@@ -42,27 +41,27 @@ model DoctorProfile {
   country         String
   consultationFee Decimal  @db.Decimal(10, 2)
   isAvailable     Boolean  @default(true)
-  cardNumber      String?  // Номер карты для вывода средств
+  cardNumber      String? // Номер карты для вывода средств
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   reviews         Review[]
 }
 
 model Chat {
-  id            Int      @id @default(autoincrement())
-  patientId     Int
-  doctorId      Int
-  patient       User     @relation("PatientChats", fields: [patientId], references: [id])
-  doctor        User     @relation("DoctorChats", fields: [doctorId], references: [id])
+  id             Int           @id @default(autoincrement())
+  patientId      Int
+  doctorId       Int
+  patient        User          @relation("PatientChats", fields: [patientId], references: [id])
+  doctor         User          @relation("DoctorChats", fields: [doctorId], references: [id])
   telegramChatId String? // ID чата в Telegram
-  serviceType   String   // "consultation" или "analysis"
-  amount        Decimal  @db.Decimal(10, 2)
-  status        ChatStatus @default(ACTIVE)
-  payments      Payment[]
-  pdfDocuments  PDFDocument[] @relation("ChatPDFDocuments")
-  reviews       Review[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  serviceType    String // "consultation" или "analysis"
+  amount         Decimal       @db.Decimal(10, 2)
+  status         ChatStatus    @default(ACTIVE)
+  payments       Payment[]
+  pdfDocuments   PDFDocument[] @relation("ChatPDFDocuments")
+  reviews        Review[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 enum Role {
@@ -87,34 +86,42 @@ model Balance {
 }
 
 model Payment {
-  id            Int          @id @default(autoincrement())
-  userId        Int
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chatId        Int?
-  chat          Chat?        @relation(fields: [chatId], references: [id], onDelete: SetNull)
-  amount        Decimal      @db.Decimal(10, 2)
-  paymentMethod PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  description   String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                 Int           @id @default(autoincrement())
+  userId             Int
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatId             Int?
+  chat               Chat?         @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  amount             Decimal       @db.Decimal(10, 2)
+  paymentMethod      PaymentMethod
+  status             PaymentStatus @default(PENDING)
+  description        String?
+  // Robokassa-specific fields
+  robokassaInvoiceId String?       @unique
+  robokassaSignature String?
+  robokassaOutSum    String?
+  splitAmount        Decimal?      @db.Decimal(10, 2)
+  splitMerchantId    String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([robokassaInvoiceId])
 }
 
 model PDFDocument {
-  id            Int          @id @default(autoincrement())
-  filename      String       // Имя файла на диске
-  originalName  String       // Оригинальное имя файла
-  filePath      String       // Путь к файлу на сервере
-  fileSize      Int          // Размер файла в байтах
-  mimeType      String       @default("application/pdf")
+  id           Int             @id @default(autoincrement())
+  filename     String // Имя файла на диске
+  originalName String // Оригинальное имя файла
+  filePath     String // Путь к файлу на сервере
+  fileSize     Int // Размер файла в байтах
+  mimeType     String          @default("application/pdf")
   documentType PDFDocumentType
-  userId        Int?         // Владелец документа (опционально)
-  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  chatId        Int?         // Связанный чат (опционально)
-  chat          Chat?        @relation("ChatPDFDocuments", fields: [chatId], references: [id], onDelete: SetNull)
-  metadata      Json?        // Дополнительные метаданные в JSON
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  userId       Int? // Владелец документа (опционально)
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  chatId       Int? // Связанный чат (опционально)
+  chat         Chat?           @relation("ChatPDFDocuments", fields: [chatId], references: [id], onDelete: SetNull)
+  metadata     Json? // Дополнительные метаданные в JSON
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([userId])
   @@index([chatId])
@@ -125,6 +132,7 @@ enum PaymentMethod {
   BALANCE
   CARD
   BANK_TRANSFER
+  ROBOKASSA
 }
 
 enum PaymentStatus {
@@ -144,19 +152,19 @@ enum PDFDocumentType {
 }
 
 model Review {
-  id          Int      @id @default(autoincrement())
-  patientId   Int
-  doctorId    Int
+  id              Int           @id @default(autoincrement())
+  patientId       Int
+  doctorId        Int
   doctorProfileId Int
-  chatId      Int?
-  patient     User     @relation("ReviewAuthor", fields: [patientId], references: [id])
-  doctor      User     @relation("ReviewDoctor", fields: [doctorId], references: [id])
-  doctorProfile DoctorProfile @relation(fields: [doctorProfileId], references: [id])
-  chat        Chat?    @relation(fields: [chatId], references: [id])
-  rating      Int      // 1-5
-  comment     String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  chatId          Int?
+  patient         User          @relation("ReviewAuthor", fields: [patientId], references: [id])
+  doctor          User          @relation("ReviewDoctor", fields: [doctorId], references: [id])
+  doctorProfile   DoctorProfile @relation(fields: [doctorProfileId], references: [id])
+  chat            Chat?         @relation(fields: [chatId], references: [id])
+  rating          Int // 1-5
+  comment         String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@index([doctorProfileId])
   @@index([patientId])

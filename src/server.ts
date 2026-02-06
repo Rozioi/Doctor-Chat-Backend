@@ -32,6 +32,7 @@ server.register(fastifyCors, {
     "https://rozioi.pro",
     "http://localhost:3000",
     "http://localhost:5174",
+    "https://soundly-primary-protozoa.cloudpub.ru",
     "https://rampantly-reasonable-millipede.cloudpub.ru",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],

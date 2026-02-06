@@ -17,7 +17,6 @@ export const DoctorControlller = {
     try {
       const { user, doctor } = req.body;
 
-      // 1️⃣ Создаём пользователя
       const userData = {
         telegramId: String(user.telegramData.id),
         username: user.telegramData.username,
@@ -35,7 +34,6 @@ export const DoctorControlller = {
         return reply.status(400).send({ error: "Failed to create user" });
       }
 
-      // 2️⃣ Проверяем обязательные поля врача
       if (!doctor.specialization) {
         return reply.status(400).send({ error: "specialization is required" });
       }
@@ -46,20 +44,17 @@ export const DoctorControlller = {
         return reply.status(400).send({ error: "country is required" });
       }
 
-      // 3️⃣ Привязываем врача к пользователю
       if (!createdUser.id) {
         return reply.status(500).send({ error: "User ID is missing" });
       }
 
       const doctorData = {
         ...doctor,
-        userId: createdUser.id, // ← вот это важно
+        userId: createdUser.id,
       };
 
-      // 4️⃣ Создаём врача
       const doctorRes = await DoctorRepo.createDoctor(doctorData);
 
-      // 5️⃣ Возвращаем результат
       return reply.status(201).send({
         user: createdUser,
         doctor: doctorRes,

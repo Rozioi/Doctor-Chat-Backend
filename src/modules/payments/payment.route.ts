@@ -11,5 +11,12 @@ export const paymentRoutes: TRouteFunction = (
   fastify.post("/balance/add", PaymentController.addToBalance);
   fastify.post("/payments", PaymentController.createPayment);
   fastify.get("/payments", PaymentController.getPayments);
+
+  // Robokassa routes
+  fastify.post("/payments/robokassa/init", PaymentController.initRobokassaPayment);
+  fastify.post("/payments/robokassa/result", PaymentController.robokassaResultCallback);
+  fastify.get("/payments/robokassa/success", PaymentController.robokassaSuccess);
+  fastify.get("/payments/robokassa/fail", PaymentController.robokassaFail);
+  fastify.get("/payments/robokassa/status/:invoiceId", PaymentController.checkRobokassaStatus);
   done();
 };

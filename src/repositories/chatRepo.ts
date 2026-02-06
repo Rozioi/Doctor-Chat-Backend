@@ -88,4 +88,19 @@ export const ChatRepo = {
       throw new Error("Failed to get chats");
     }
   },
+  async findActiveChat(patientId: number, doctorId: number, serviceType: string) {
+    try {
+      const chat = await prisma.chat.findFirst({
+        where: {
+          patientId,
+          doctorId,
+          serviceType,
+          status: "ACTIVE",
+        },
+      });
+      return chat;
+    } catch (error) {
+      throw new Error("Failed to find active chat");
+    }
+  },
 };
