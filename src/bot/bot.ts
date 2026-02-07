@@ -4,7 +4,7 @@ const bot = new Bot("8354667423:AAFqKYMgHAgknPkJsonwKNenPmreBla630g");
 
 const createMainKeyboard = () => {
   return new InlineKeyboard()
-    .webApp("👨‍⚕️ Найти врача", "https://soundly-primary-protozoa.cloudpub.ru")
+    .webApp("👨‍⚕️ Найти врача", "https://doctor-chat-c-lient.vercel.app")
     .row()
     .text("📋 Как это работает", "how_it_works")
     .text("💳 Гарантия оплаты", "payment_guarantee")
@@ -50,7 +50,7 @@ bot.callbackQuery("how_it_works", async (ctx) => {
       reply_markup: new InlineKeyboard()
         .webApp(
           "👨‍⚕️ Найти врача",
-          "https://soundly-primary-protozoa.cloudpub.ru",
+          "https://doctor-chat-c-lient.vercel.app",
         )
         .row()
         .text("🔙 Назад", "back_to_main"),
@@ -82,7 +82,7 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
       reply_markup: new InlineKeyboard()
         .webApp(
           "👨‍⚕️ Начать поиск",
-          "https://soundly-primary-protozoa.cloudpub.ru",
+          "https://doctor-chat-c-lient.vercel.app",
         )
         .row()
         .text("🔙 Назад", "back_to_main"),
@@ -108,14 +108,13 @@ bot.callbackQuery("for_doctors", async (ctx) => {
 2. Пройдите верификацию
 3. Начните принимать пациентов
 4. Получайте оплату без задержек
-
-Для регистрации как врач напишите нам: doctors@rozioi.pro`,
+`,
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
         .url(
           "📝 Регистрация врача",
-          "https://soundly-primary-protozoa.cloudpub.ru/doctor-registration",
+          "https://doctor-chat-c-lient.vercel.app/doctor-registration",
         )
         .row()
         .text("🔙 Назад", "back_to_main"),
@@ -143,7 +142,7 @@ bot.callbackQuery("contacts", async (ctx) => {
       reply_markup: new InlineKeyboard()
         .webApp(
           "👨‍⚕️ Перейти к платформе",
-          "https://soundly-primary-protozoa.cloudpub.ru",
+          "https://doctor-chat-c-lient.vercel.app",
         )
         .row()
         .text("🔙 Назад", "back_to_main"),
@@ -177,7 +176,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().webApp(
           "👨‍⚕️ Найти врача",
-          "https://soundly-primary-protozoa.cloudpub.ru",
+          "https://doctor-chat-c-lient.vercel.app",
         ),
       },
     );
@@ -205,7 +204,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().url(
           "📝 Регистрация врача",
-          "https://soundly-primary-protozoa.cloudpub.ru/doctor-registration",
+          "https://doctor-chat-c-lient.vercel.app/doctor-registration",
         ),
       },
     );
@@ -219,7 +218,7 @@ bot.on("message", async (ctx) => {
       {
         reply_markup: new InlineKeyboard().webApp(
           "👨‍⚕️ Перейти к платформе",
-          "https://soundly-primary-protozoa.cloudpub.ru",
+          "https://doctor-chat-c-lient.vercel.app",
         ),
       },
     );
