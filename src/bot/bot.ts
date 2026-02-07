@@ -1,6 +1,6 @@
 import { Bot, InlineKeyboard } from "grammy";
 
-const bot = new Bot("8322768927:AAHy9zUG5Li0bFgW6gVYcvNKIQ_2r2bfaIc");
+const bot = new Bot("8354667423:AAFqKYMgHAgknPkJsonwKNenPmreBla630g");
 
 const createMainKeyboard = () => {
   return new InlineKeyboard()
