@@ -1,6 +1,12 @@
 import { Bot, InlineKeyboard } from "grammy";
 
-const bot = new Bot("8354667423:AAFqKYMgHAgknPkJsonwKNenPmreBla630g");
+const token = process.env.BOT_TOKEN;
+
+if (!token) {
+  throw new Error("BOT_TOKEN is not defined in environment variables");
+}
+
+export const bot = new Bot(token);
 
 const createMainKeyboard = () => {
   return new InlineKeyboard()
@@ -14,7 +20,7 @@ const createMainKeyboard = () => {
 };
 
 bot.command("start", async (ctx) => {
-  const welcomeText = `👋 Добро пожаловать на медицинскую платформу Doctor Chat!
+  const welcomeText = `👋 Добро пожаловать на медицинскую платформу MED EXPERT EU!
 
 Мы — надежный посредник между пациентами и врачами:
 
@@ -48,10 +54,7 @@ bot.callbackQuery("how_it_works", async (ctx) => {
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .webApp(
-          "👨‍⚕️ Найти врача",
-          "https://doctor-chat-c-lient.vercel.app",
-        )
+        .webApp("👨‍⚕️ Найти врача", "https://doctor-chat-c-lient.vercel.app")
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -80,10 +83,8 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .webApp(
-          "👨‍⚕️ Начать поиск",
-          "https://doctor-chat-c-lient.vercel.app",
-        )
+
+        .webApp("👨‍⚕️ Начать поиск", "https://doctor-chat-c-lient.vercel.app")
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
@@ -130,9 +131,6 @@ bot.callbackQuery("contacts", async (ctx) => {
 📧 : doctor_chat@mail.ru
 🕒 Поддержка: 24/7
 
-<b>Для связи:</b>
-📞 : +7 702 294 0422
-
 <b>По вопросам сотрудничества:</b>
 📧 : doctor_chat@mail.ru
 
@@ -152,7 +150,7 @@ bot.callbackQuery("contacts", async (ctx) => {
 bot.callbackQuery("back_to_main", async (ctx) => {
   await ctx.answerCallbackQuery();
   await ctx.editMessageText(
-    `👋 С возвращением на медицинскую платформу Doctor Chat!
+    `👋 С возвращением на медицинскую платформу MED EXPERT EU!
 
 Ваш надежный посредник в поиске врачей и гарант безопасных расчетов.`,
     {
