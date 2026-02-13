@@ -159,11 +159,11 @@ bot.callbackQuery("coordinator", async (ctx) => {
 В остальное время вы можете оставить сообщение, и мы ответим утром первым делом.
 
 👇 Нажмите на ссылку ниже, чтобы открыть диалог с живым оператором:
-https://t.me/m/MHmr46phMmI6`,
+https://t.me/m/ZEH5m-TsMTMy`,
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
-        .url("📧 Написать оператору", "https://t.me/m/MHmr46phMmI6")
+        .url("📧 Написать оператору", "https://t.me/m/ZEH5m-TsMTMy")
         .row()
         .text("🔙 Назад", "back_to_main"),
     },
