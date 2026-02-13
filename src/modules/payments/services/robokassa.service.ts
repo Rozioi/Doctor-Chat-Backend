@@ -12,6 +12,7 @@ export interface RobokassaPaymentParams {
     shp_doctorId?: number;
     shp_serviceType?: string;
     shp_userId?: number;
+    shp_tariffType?: "STANDARD" | "VIP";
 }
 
 export interface RobokassaCallbackParams {
@@ -60,6 +61,7 @@ export class RobokassaService {
             shp_doctorId,
             shp_serviceType,
             shp_userId,
+            shp_tariffType,
         } = params;
 
         const { merchantLogin, password1, testMode, resultUrl, successUrl, failUrl } =
@@ -74,6 +76,7 @@ export class RobokassaService {
         if (shp_doctorId) customParams.shp_doctorId = shp_doctorId;
         if (shp_serviceType) customParams.shp_serviceType = shp_serviceType;
         if (shp_userId) customParams.shp_userId = shp_userId;
+        if (shp_tariffType) customParams.shp_tariffType = shp_tariffType;
 
         // Generate signature
         const signature = this.generateSignature(
@@ -172,13 +175,11 @@ export class RobokassaService {
         };
     }
 
-    /**
-     * Parse custom parameters from callback
-     */
     static parseCustomParams(params: RobokassaCallbackParams): {
         doctorId?: number;
         serviceType?: string;
         userId?: number;
+        tariffType?: "STANDARD" | "VIP";
     } {
         return {
             doctorId: params.shp_doctorId
@@ -186,6 +187,7 @@ export class RobokassaService {
                 : undefined,
             serviceType: params.shp_serviceType,
             userId: params.shp_userId ? parseInt(params.shp_userId, 10) : undefined,
+            tariffType: params.shp_tariffType as "STANDARD" | "VIP",
         };
     }
 }

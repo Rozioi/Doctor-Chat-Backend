@@ -7,6 +7,7 @@ export interface User {
   firstName?: string | null;
   phoneNumber?: string | null;
   lastName?: string | null;
+  patronymic?: string | null;
   photoUrl?: string | null;
   role: Role;
   createdAt: Date;

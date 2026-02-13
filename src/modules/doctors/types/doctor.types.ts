@@ -7,5 +7,7 @@ export interface DoctorInput {
   education: string;
   certificates: string[];
   consultationFee: number;
+  languages: string[];
+  approbationUrl?: string;
   country: string;
 }

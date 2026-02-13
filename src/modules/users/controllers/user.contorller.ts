@@ -51,8 +51,8 @@ export const userController = {
   async createUser(
     req: FastifyRequest<{
       Body:
-        | { user: User }
-        | { telegramData: any; role: string; phoneNumber?: string };
+      | { user: User }
+      | { telegramData: any; role: string; phoneNumber?: string };
     }>,
     reply: FastifyReply,
   ) {
@@ -161,6 +161,7 @@ export const userController = {
         photoUrl?: string;
         firstName?: string;
         lastName?: string;
+        patronymic?: string;
         phoneNumber?: string;
       };
     }>,

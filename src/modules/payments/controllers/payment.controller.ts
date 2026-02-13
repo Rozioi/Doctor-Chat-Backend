@@ -216,9 +216,9 @@ export const PaymentController = {
   async initRobokassaPayment(
     req: FastifyRequest<{
       Body: {
-        doctorId: number;
         amount: number;
         serviceType: string;
+        tariffType?: "STANDARD" | "VIP";
         description?: string;
         telegramId?: string;
       };
@@ -233,7 +233,7 @@ export const PaymentController = {
         return reply.status(401).send({ error: "User not authenticated" });
       }
 
-      const { doctorId, amount, serviceType, description } = req.body;
+      const { doctorId, amount, serviceType, tariffType, description } = req.body;
 
       if (!amount || amount <= 0) {
         return reply.status(400).send({ error: "Invalid amount" });
@@ -270,6 +270,7 @@ export const PaymentController = {
         shp_doctorId: doctorId,
         shp_serviceType: serviceType,
         shp_userId: user.id,
+        shp_tariffType: tariffType,
       });
 
       // Update payment with Robokassa invoice ID
@@ -353,6 +354,7 @@ export const PaymentController = {
             doctorId: customParams.doctorId,
             serviceType: customParams.serviceType,
             amount: parseFloat(OutSum),
+            tariffType: customParams.tariffType,
           });
         }
       }

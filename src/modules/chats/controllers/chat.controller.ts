@@ -194,4 +194,73 @@ export const ChatController = {
       });
     }
   },
+
+  async completeChat(
+    req: FastifyRequest<{
+      Params: {
+        chatId: string;
+      };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const chatId = parseInt(req.params.chatId, 10);
+      const telegramId = req.headers["x-telegram-user-id"] as string;
+
+      if (!telegramId) {
+        return reply.status(401).send({ error: "User not authenticated" });
+      }
+
+      const user = await userRepo.getUserByTelegramId(telegramId);
+      if (!user || user.role !== "DOCTOR") {
+        return reply
+          .status(403)
+          .send({ error: "Only doctors can complete consultations" });
+      }
+
+      const chat = await ChatRepo.completeChat(chatId);
+
+      // Automated Bot Notifications
+      const bot = (await import("../../../bot/bot")).default;
+      const { InlineKeyboard } = await import("grammy");
+
+      if (chat.tariffType === "VIP") {
+        // Notification for VIP Patient
+        await bot.api.sendMessage(
+          chat.patient.telegramId,
+          "Ваша VIP консультация завершена. Мы готовы к следующему этапу — визиту в партнерскую клинику.",
+          {
+            reply_markup: new InlineKeyboard().url(
+              "Записаться к врачу-партнеру",
+              "https://t.me/coordinator_account", // Replace with real coordinator link
+            ),
+          },
+        );
+
+        // Notification for Coordinator
+        // NOTE: In a real app, you'd fetch the coordinator's telegramId from config/DB
+        // For now, we mock it or send it to an admin channel if available.
+        console.log(`[VIP NOTIFICATION] New VIP Case: Patient ${chat.patient.username}, Doctor ${chat.doctor.username}`);
+      } else {
+        // Notification for Standard Patient
+        await bot.api.sendMessage(
+          chat.patient.telegramId,
+          "Ваша консультация завершена. Если у вас остались вопросы, вы можете связаться с нашим координатором.",
+          {
+            reply_markup: new InlineKeyboard().url(
+              "Связаться с координатором",
+              "https://t.me/coordinator_account", // Replace with real coordinator link
+            ),
+          },
+        );
+      }
+
+      return reply.status(200).send({ success: true, data: chat });
+    } catch (error: any) {
+      req.log.error(error);
+      return reply.status(500).send({
+        error: error.message || "Failed to complete chat",
+      });
+    }
+  },
 };

@@ -17,21 +17,39 @@ export const DoctorControlller = {
     try {
       const { user, doctor } = req.body;
 
-      const userData = {
-        telegramId: String(user.telegramData.id),
-        username: user.telegramData.username,
-        firstName: user.telegramData.first_name,
-        lastName: user.telegramData.last_name,
-        photoUrl: user.telegramData.photo_url,
-        phoneNumber: user.phoneNumber,
-        role: "DOCTOR" as const,
-        createdAt: new Date(),
-      };
+      const telegramId = String(user.telegramData.id);
 
-      const createdUser = await userRepo.createUser(userData);
+      // Check if user already exists
+      let existingUser = await userRepo.getUserByTelegramId(telegramId);
+      let createdUser;
+
+      if (existingUser) {
+        // Update user if they exist
+        createdUser = await userRepo.updateUser(telegramId, {
+          username: user.telegramData.username,
+          firstName: user.telegramData.first_name,
+          lastName: user.telegramData.last_name,
+          photoUrl: user.telegramData.photo_url,
+          phoneNumber: user.phoneNumber,
+          role: "DOCTOR",
+        });
+      } else {
+        // Create new user if not exists
+        const userData = {
+          telegramId,
+          username: user.telegramData.username,
+          firstName: user.telegramData.first_name,
+          lastName: user.telegramData.last_name,
+          photoUrl: user.telegramData.photo_url,
+          phoneNumber: user.phoneNumber,
+          role: "DOCTOR" as const,
+          createdAt: new Date(),
+        };
+        createdUser = await userRepo.createUser(userData);
+      }
 
       if (!createdUser) {
-        return reply.status(400).send({ error: "Failed to create user" });
+        return reply.status(400).send({ error: "Failed to create or update user" });
       }
 
       if (!doctor.specialization) {

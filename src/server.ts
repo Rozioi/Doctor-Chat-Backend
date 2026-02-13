@@ -25,7 +25,7 @@ server.register(fastifyStatic, {
   prefix: "/uploads",
 });
 server.register(fastifyMultipart, {
-  limits: { fileSize: 1024 * 1024 * 5, files: 1 },
+  limits: { fileSize: 1024 * 1024 * 10, files: 1 },
 });
 server.register(fastifyCors, {
   origin: [
@@ -58,30 +58,49 @@ FastifyRoute(
 );
 
 server.post("/upload", async (req, reply) => {
-  const file = await req.file();
+  try {
+    const file = await req.file();
 
-  if (!file) {
-    return reply.status(400).send({ error: "No file provided" });
+    if (!file) {
+      return reply.status(400).send({ error: "No file provided" });
+    }
+    const inputBuffer = await file.toBuffer();
+    const isImage = file.mimetype.startsWith("image/");
+    const extension = path.extname(file.filename) || (isImage ? ".png" : "");
+    const fileName = `${Date.now()}${extension}`;
+    const outputPath = path.join(uploadsDir, fileName);
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    if (isImage) {
+      const compressedFileName = fileName.replace(extension, ".jpg");
+      const compressedPath = path.join(uploadsDir, compressedFileName);
+      const outBuffer = await sharp(inputBuffer)
+        .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 70 })
+        .toBuffer();
+      fs.writeFileSync(compressedPath, outBuffer);
+      return reply.status(200).send({
+        message: "Image uploaded and compressed successfully",
+        path: `uploads/${compressedFileName}`,
+        originalSize: inputBuffer.length,
+        compressedSize: outBuffer.length,
+      });
+    } else {
+      fs.writeFileSync(outputPath, inputBuffer);
+      return reply.status(200).send({
+        message: "File uploaded successfully",
+        path: `uploads/${fileName}`,
+        originalSize: inputBuffer.length,
+        compressedSize: inputBuffer.length,
+      });
+    }
+  } catch (error: any) {
+    server.log.error(error);
+    return reply.status(500).send({ error: error.message || "Upload failed" });
   }
-  const inputBuffer = await file.toBuffer();
-
-  const outBuffer = await sharp(inputBuffer)
-    .resize(1024, 1024)
-    .jpeg({ quality: 70 })
-    .toBuffer();
-  const uploadsDir = "uploads";
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-
-  const outputPath = `${uploadsDir}/${Date.now()}.png`;
-  fs.writeFileSync(outputPath, outBuffer);
-  return reply.status(200).send({
-    message: "File uploaded successfully",
-    path: outputPath,
-    originalSize: inputBuffer.length,
-    compressedSize: outBuffer.length,
-  });
 });
 
 server.get("/users", async (request, reply) => {

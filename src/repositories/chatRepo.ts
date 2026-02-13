@@ -7,6 +7,7 @@ export const ChatRepo = {
     serviceType: string;
     amount: number;
     telegramChatId?: string;
+    tariffType?: "STANDARD" | "VIP";
   }) {
     try {
       const chat = await prisma.chat.create({
@@ -16,6 +17,7 @@ export const ChatRepo = {
           serviceType: data.serviceType,
           amount: data.amount,
           telegramChatId: data.telegramChatId,
+          tariffType: data.tariffType || "STANDARD",
         },
         include: {
           patient: true,
@@ -101,6 +103,26 @@ export const ChatRepo = {
       return chat;
     } catch (error) {
       throw new Error("Failed to find active chat");
+    }
+  },
+
+  async completeChat(chatId: number) {
+    try {
+      const chat = await prisma.chat.update({
+        where: { id: chatId },
+        data: { status: "COMPLETED" },
+        include: {
+          patient: true,
+          doctor: {
+            include: {
+              doctorProfile: true,
+            },
+          },
+        },
+      });
+      return chat;
+    } catch (error) {
+      throw new Error("Failed to complete chat");
     }
   },
 };
