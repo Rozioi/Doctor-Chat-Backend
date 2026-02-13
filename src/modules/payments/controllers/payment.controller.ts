@@ -218,6 +218,7 @@ export const PaymentController = {
       Body: {
         amount: number;
         serviceType: string;
+        doctorId?: number;
         tariffType?: "STANDARD" | "VIP";
         description?: string;
         telegramId?: string;
@@ -233,7 +234,8 @@ export const PaymentController = {
         return reply.status(401).send({ error: "User not authenticated" });
       }
 
-      const { doctorId, amount, serviceType, tariffType, description } = req.body;
+      const { doctorId, amount, serviceType, tariffType, description } =
+        req.body;
 
       if (!amount || amount <= 0) {
         return reply.status(400).send({ error: "Invalid amount" });
