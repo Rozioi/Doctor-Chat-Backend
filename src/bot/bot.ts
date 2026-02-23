@@ -127,7 +127,7 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
 Сервис не оказывает экстренную медицинскую помощь. При острой боли немедленно вызывайте Скорую помощь (103 / 112).
 
 📄 [Читать текст Оферты](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/user-agreement-public-offer-med-expert-eu.pdf)
-📄 [Читать текст Политики Конфиденциальности](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/                    "privacy-policy-and-consent-to-data-processing.pdf")`
+📄 [Читать текст Политики Конфиденциальности](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/privacy-policy-and-consent-to-data-processing.pdf)`
 ,
     {
       parse_mode: "Markdown",
