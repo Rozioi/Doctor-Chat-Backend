@@ -232,7 +232,7 @@ export const ChatController = {
           {
             reply_markup: new InlineKeyboard().url(
               "Записаться к врачу-партнеру",
-              "https://t.me/coordinator_account", // Replace with real coordinator link
+              "https://t.me/m/ZEH5m-TsMTMy", // Replace with real coordinator link
             ),
           },
         );
@@ -240,7 +240,9 @@ export const ChatController = {
         // Notification for Coordinator
         // NOTE: In a real app, you'd fetch the coordinator's telegramId from config/DB
         // For now, we mock it or send it to an admin channel if available.
-        console.log(`[VIP NOTIFICATION] New VIP Case: Patient ${chat.patient.username}, Doctor ${chat.doctor.username}`);
+        console.log(
+          `[VIP NOTIFICATION] New VIP Case: Patient ${chat.patient.username}, Doctor ${chat.doctor.username}`,
+        );
       } else {
         // Notification for Standard Patient
         await bot.api.sendMessage(
@@ -249,7 +251,7 @@ export const ChatController = {
           {
             reply_markup: new InlineKeyboard().url(
               "Связаться с координатором",
-              "https://t.me/coordinator_account", // Replace with real coordinator link
+              "https://t.me/m/ZEH5m-TsMTMy", // Replace with real coordinator link
             ),
           },
         );

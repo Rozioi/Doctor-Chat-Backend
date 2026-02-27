@@ -1,488 +1,288 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { BalanceRepo } from "../../../repositories/balanceRepo";
+import {
+  CreatePaymentDto,
+  FreedomPayResult,
+} from "../../types/freedompay.types";
 import { PaymentRepo } from "../../../repositories/paymentRepo";
-import { userRepo } from "../../../repositories/userRepo";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
-import { RobokassaService } from "../services/robokassa.service";
+import { prisma } from "../../common/prisma";
+import bot from "../../../bot/bot";
+import { InlineKeyboard } from "grammy";
 import { ChatRepo } from "../../../repositories/chatRepo";
+import { DoctorRepo } from "../../../repositories/doctorRepo";
+import { userRepo } from "../../../repositories/userRepo";
 
-export const PaymentController = {
-  async getBalance(
-    req: FastifyRequest<{
-      Querystring: {
-        telegramId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const telegramId =
-        (req.headers["x-telegram-user-id"] as string) || req.query.telegramId;
+export const finalizePayment = async (
+  paymentId: number,
+  paymentStatus: string | undefined,
+) => {
+  const payment = await PaymentRepo.getPaymentById(paymentId);
 
-      if (!telegramId) {
-        return reply.status(401).send({ error: "User not authenticated" });
-      }
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
 
-      const balance = await BalanceRepo.getBalanceByTelegramId(telegramId);
+  const normalizedStatus = (paymentStatus || "").toLowerCase();
+  const isSuccess = ["success", "ok", "completed", "paid"].includes(
+    normalizedStatus,
+  );
 
-      if (!balance) {
-        return reply.status(404).send({ error: "Balance not found" });
-      }
+  if (!payment.chatId && isSuccess) {
+    if (!payment.doctorId) {
+      throw new Error("Doctor not specified for payment");
+    }
 
-      return reply.status(200).send({
-        success: true,
+    const serviceType =
+      (payment as any).serviceType === "analysis"
+        ? "analysis"
+        : "consultation";
+
+    // Защита от двойного создания чата при повторных колбэках/запросах
+    const existingChat = await ChatRepo.findActiveChat(
+      payment.userId,
+      payment.doctorId,
+      serviceType,
+    );
+
+    // existingChat возвращается из ChatRepo без include,
+    // поэтому, если он есть, достаём его ещё раз с relations
+    const chat =
+      existingChat &&
+      (await prisma.chat.findUnique({
+        where: { id: existingChat.id },
+        include: { patient: true, doctor: true },
+      })) ||
+      (await prisma.chat.create({
         data: {
-          amount: Number(balance.amount),
-          userId: balance.userId,
+          patientId: payment.userId,
+          doctorId: payment.doctorId,
+          serviceType,
+          amount: payment.amount,
+          status: "ACTIVE",
         },
-      });
-    } catch (error: any) {
-      console.error("Error getting balance:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to get balance",
-      });
-    }
-  },
-
-  async createPayment(
-    req: FastifyRequest<{
-      Body: {
-        amount: number;
-        paymentMethod: PaymentMethod;
-        chatId?: number;
-        description?: string;
-        telegramId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const telegramId =
-        (req.headers["x-telegram-user-id"] as string) || req.body.telegramId;
-
-      if (!telegramId) {
-        return reply.status(401).send({ error: "User not authenticated" });
-      }
-
-      const { amount, paymentMethod, chatId, description } = req.body;
-
-      if (!amount || amount <= 0) {
-        return reply.status(400).send({ error: "Invalid amount" });
-      }
-
-      const user = await userRepo.getUserByTelegramId(telegramId);
-      if (!user) {
-        return reply.status(404).send({ error: "User not found" });
-      }
-
-      if (paymentMethod === PaymentMethod.BALANCE) {
-        const balance = await BalanceRepo.getBalanceByUserId(user.id as number);
-        if (!balance) {
-          return reply.status(404).send({ error: "Balance not found" });
-        }
-        const currentAmount = Number(balance.amount);
-
-        if (currentAmount < amount) {
-          return reply.status(400).send({
-            success: false,
-            error: "Insufficient balance",
-          });
-        }
-
-        await BalanceRepo.subtractFromBalance(user.id as number, amount);
-      }
-
-      const payment = await PaymentRepo.createPayment({
-        userId: user.id as number,
-        chatId,
-        amount,
-        paymentMethod,
-        status: PaymentStatus.COMPLETED,
-        description,
-      });
-
-      return reply.status(201).send({
-        success: true,
-        data: payment,
-      });
-    } catch (error: any) {
-      console.error("Error creating payment:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to create payment",
-      });
-    }
-  },
-
-  async getPayments(
-    req: FastifyRequest<{
-      Querystring: {
-        telegramId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const telegramId =
-        (req.headers["x-telegram-user-id"] as string) || req.query.telegramId;
-
-      if (!telegramId) {
-        return reply.status(401).send({ error: "User not authenticated" });
-      }
-
-      const payments = await PaymentRepo.getPaymentsByTelegramId(telegramId);
-
-      return reply.status(200).send({
-        success: true,
-        data: payments.map((payment) => ({
-          id: payment.id,
-          amount: Number(payment.amount),
-          paymentMethod: payment.paymentMethod,
-          status: payment.status,
-          description: payment.description,
-          chatId: payment.chatId,
-          createdAt: payment.createdAt,
-          updatedAt: payment.updatedAt,
-        })),
-      });
-    } catch (error: any) {
-      console.error("Error getting payments:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to get payments",
-      });
-    }
-  },
-
-  async addToBalance(
-    req: FastifyRequest<{
-      Body: {
-        amount: number;
-        telegramId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const telegramId =
-        (req.headers["x-telegram-user-id"] as string) || req.body.telegramId;
-
-      if (!telegramId) {
-        return reply.status(401).send({ error: "User not authenticated" });
-      }
-
-      const { amount } = req.body;
-
-      if (!amount || amount <= 0) {
-        return reply.status(400).send({ error: "Invalid amount" });
-      }
-
-      const user = await userRepo.getUserByTelegramId(telegramId);
-      if (!user) {
-        return reply.status(404).send({ error: "User not found" });
-      }
-
-      const balance = await BalanceRepo.addToBalance(user.id as number, amount);
-      if (!balance) {
-        return reply.status(500).send({ error: "Failed to update balance" });
-      }
-
-      await PaymentRepo.createPayment({
-        userId: user.id as number,
-        amount,
-        paymentMethod: PaymentMethod.BANK_TRANSFER,
-        status: PaymentStatus.COMPLETED,
-        description: "Пополнение баланса",
-      });
-
-      return reply.status(200).send({
-        success: true,
-        data: {
-          amount: Number(balance.amount),
-          userId: balance.userId,
+        include: {
+          patient: true,
+          doctor: true,
         },
-      });
-    } catch (error: any) {
-      console.error("Error adding to balance:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to add to balance",
-      });
-    }
-  },
+      }));
 
-  // Robokassa payment endpoints
-  async initRobokassaPayment(
-    req: FastifyRequest<{
-      Body: {
-        amount: number;
-        serviceType: string;
-        doctorId?: number;
-        tariffType?: "STANDARD" | "VIP";
-        description?: string;
-        telegramId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const telegramId =
-        (req.headers["x-telegram-user-id"] as string) || req.body.telegramId;
+    await PaymentRepo.updatePayment(paymentId, {
+      status: PaymentStatus.COMPLETED,
+      chatId: chat.id,
+    });
 
-      if (!telegramId) {
-        return reply.status(401).send({ error: "User not authenticated" });
+    // Уведомления отправляем только при создании нового чата,
+    // а не при повторных колбэках
+    if (!existingChat && chat) {
+      const serviceLabel =
+        serviceType === "analysis" ? "расшифровку анализов" : "консультацию";
+
+      const description = (payment.description || "").toLowerCase();
+      const tariffLabel = description.includes("vip")
+        ? "тариф VIP"
+        : "тариф Стандарт";
+
+      if (chat.doctor.telegramId) {
+        await bot.api.sendMessage(
+          chat.doctor.telegramId,
+          `🆕 Новый оплаченный запрос на ${serviceLabel} (${tariffLabel}) от пациента ${
+            chat.patient.username || chat.patient.firstName || "Пациент"
+          }. Нажмите кнопку ниже, чтобы открыть чат с пациентом.`,
+          {
+            reply_markup: new InlineKeyboard().url(
+              "Открыть диалог в Telegram",
+              `tg://user?id=${chat.patient.telegramId}`,
+            ),
+          },
+        );
       }
 
-      const { doctorId, amount, serviceType, tariffType, description } =
-        req.body;
+      if (chat.patient.telegramId && chat.doctor.telegramId) {
+        await bot.api.sendMessage(
+          chat.patient.telegramId,
+          `✅ Оплата за ${serviceLabel} (${tariffLabel}) прошла успешно.\n` +
+            `Ваш врач: ${
+              chat.doctor.firstName ||
+              chat.doctor.username ||
+              "Врач-консультант"
+            }.\n` +
+            `Нажмите кнопку ниже, чтобы написать врачу.`,
+          {
+            reply_markup: new InlineKeyboard().url(
+              "Открыть чат с врачом",
+              `tg://user?id=${chat.doctor.telegramId}`,
+            ),
+          },
+        );
+      }
+    }
+  } else {
+    await PaymentRepo.updatePayment(paymentId, {
+      status: isSuccess ? PaymentStatus.COMPLETED : PaymentStatus.FAILED,
+    });
+  }
+};
 
-      if (!amount || amount <= 0) {
-        return reply.status(400).send({ error: "Invalid amount" });
+export const createPaymentController =
+  (freedomPayService: any) =>
+  async (
+    request: FastifyRequest<{ Body: CreatePaymentDto }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { amount, doctorId, serviceType, tariffType, telegramId } =
+        request.body;
+
+      if (!telegramId) {
+        return reply.status(400).send({ error: "telegramId is required" });
       }
 
       if (!doctorId) {
-        return reply.status(400).send({ error: "Doctor ID is required" });
+        return reply.status(400).send({ error: "doctorId is required" });
       }
 
       const user = await userRepo.getUserByTelegramId(telegramId);
-      if (!user) {
+
+      if (!user || !user.id) {
         return reply.status(404).send({ error: "User not found" });
       }
 
-      // Create pending payment record
-      const paymentData = {
-        userId: user.id as number,
-        amount,
-        paymentMethod: "ROBOKASSA" as PaymentMethod,
+      const doctorProfile = await DoctorRepo.getDoctorById(doctorId);
+
+      if (!doctorProfile || !doctorProfile.userId) {
+        return reply.status(404).send({ error: "Doctor not found" });
+      }
+
+      const doctorUserId = doctorProfile.userId;
+
+      const paymentRecord = await PaymentRepo.createPayment({
+        userId: user.id,
+        doctorId: doctorUserId,
+        amount: Number(amount),
+        paymentMethod: PaymentMethod.FREEDOMPAY,
+        description:
+          tariffType === "VIP"
+            ? "VIP Tariff Consultation (FreedomPay)"
+            : "Standard Tariff Consultation (FreedomPay)",
+        serviceType: serviceType === "analysis" ? "analysis" : "consultation",
+      });
+
+      const gatewayPayment = await freedomPayService.createPayment({
+        amount: Number(paymentRecord.amount),
+        orderId: paymentRecord.id.toString(),
+      });
+
+      const updatedPayment = await PaymentRepo.updatePayment(paymentRecord.id, {
         status: PaymentStatus.PENDING,
-        description: description || `Оплата ${serviceType}`,
-      };
-      const payment = await PaymentRepo.createPayment(paymentData);
-
-      // Calculate split amounts if enabled
-      const { platformAmount, doctorAmount } =
-        RobokassaService.calculateSplitAmounts(amount);
-
-      // Generate Robokassa payment URL
-      const paymentUrl = RobokassaService.generatePaymentUrl({
-        orderId: payment.id,
-        amount,
-        description: description || `Оплата консультации врача #${doctorId}`,
-        shp_doctorId: doctorId,
-        shp_serviceType: serviceType,
-        shp_userId: user.id,
-        shp_tariffType: tariffType,
+        freedompayPaymentId: gatewayPayment.pg_payment_id?.toString(),
+        freedompayOrderId: gatewayPayment.pg_order_id?.toString(),
+        freedompayRedirectUrl: gatewayPayment.pg_redirect_url,
       });
 
-      // Update payment with Robokassa invoice ID
-      await PaymentRepo.updatePayment(payment.id, {
-        robokassaInvoiceId: payment.id.toString(),
-        splitAmount: platformAmount > 0 ? platformAmount : null,
-      });
-
-      return reply.status(200).send({
+      return reply.send({
         success: true,
-        data: {
-          paymentUrl,
-          invoiceId: payment.id.toString(),
-          amount,
-          platformAmount,
-          doctorAmount,
-        },
+        paymentId: updatedPayment.id,
+        redirectUrl: updatedPayment.freedompayRedirectUrl,
+        provider: "FREEDOMPAY",
+        raw: gatewayPayment,
       });
     } catch (error: any) {
-      console.error("Error initializing Robokassa payment:", error);
+      request.log.error(error);
       return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to initialize payment",
+        error: error.message || "Failed to create payment",
       });
     }
-  },
+  };
 
-  async robokassaResultCallback(
-    req: FastifyRequest<{
-      Body: {
-        OutSum: string;
-        InvId: string;
-        SignatureValue: string;
-        shp_doctorId?: string;
-        shp_serviceType?: string;
-        shp_userId?: string;
-      };
-    }>,
+export const resultController =
+  (freedomPayService: any) =>
+  async (
+    request: FastifyRequest<{ Body: FreedomPayResult }>,
     reply: FastifyReply,
-  ) {
+  ) => {
     try {
-      const params = req.body;
+      const body = { ...request.body };
 
-      // Verify signature
-      const isValid = RobokassaService.verifyCallbackSignature(params);
+      const isValid = freedomPayService.validateResult(body);
 
       if (!isValid) {
-        console.error("Invalid Robokassa signature:", params);
-        return reply.status(400).send("Invalid signature");
-      }
-
-      const { InvId, OutSum } = params;
-      const customParams = RobokassaService.parseCustomParams(params);
-
-      // Find payment by invoice ID
-      const payment = await PaymentRepo.getPaymentById(parseInt(InvId, 10));
-
-      if (!payment) {
-        console.error("Payment not found:", InvId);
-        return reply.status(404).send("Payment not found");
-      }
-
-      // Update payment status
-      await PaymentRepo.updatePayment(payment.id, {
-        status: PaymentStatus.COMPLETED,
-        robokassaSignature: params.SignatureValue,
-        robokassaOutSum: OutSum,
-      });
-
-      // Create chat if doctor and service type are provided
-      if (customParams.doctorId && customParams.serviceType) {
-        const existingChat = await ChatRepo.findActiveChat(
-          payment.userId,
-          customParams.doctorId,
-          customParams.serviceType,
+        if (process.env.NODE_ENV === "production") {
+          return reply.status(400).send("Invalid signature");
+        }
+        // В не-prod окружении не блокируем создание чата, только логируем
+        request.log.error(
+          { body },
+          "FreedomPay result: invalid signature (non-production mode)",
         );
-
-        if (!existingChat) {
-          await ChatRepo.createChat({
-            patientId: payment.userId,
-            doctorId: customParams.doctorId,
-            serviceType: customParams.serviceType,
-            amount: parseFloat(OutSum),
-            tariffType: customParams.tariffType,
-          });
-        }
       }
 
-      // Robokassa expects "OK" + invoice ID
-      return reply.status(200).send(`OK${InvId}`);
+      const paymentId = parseInt(body.pg_order_id, 10);
+
+      if (Number.isNaN(paymentId)) {
+        return reply.status(400).send("Invalid order id");
+      }
+
+      await finalizePayment(paymentId, body.pg_payment_status);
+
+      return reply.send("OK");
     } catch (error: any) {
-      console.error("Error processing Robokassa callback:", error);
-      return reply.status(500).send("Internal server error");
-    }
-  },
-
-  async robokassaSuccess(
-    req: FastifyRequest<{
-      Querystring: {
-        InvId?: string;
-        OutSum?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const { InvId } = req.query;
-
-      if (!InvId) {
-        return reply.status(400).send({
-          success: false,
-          error: "Invoice ID is required",
-        });
-      }
-
-      const payment = await PaymentRepo.getPaymentById(parseInt(InvId, 10));
-
-      if (!payment) {
-        return reply.status(404).send({
-          success: false,
-          error: "Payment not found",
-        });
-      }
-
-      return reply.status(200).send({
-        success: true,
-        data: {
-          paymentId: payment.id,
-          status: payment.status,
-          amount: Number(payment.amount),
-        },
-      });
-    } catch (error: any) {
-      console.error("Error handling Robokassa success:", error);
+      request.log.error(error);
       return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to process success callback",
+        error: error.message || "Failed to process payment result",
       });
     }
-  },
+  };
 
-  async robokassaFail(
-    req: FastifyRequest<{
-      Querystring: {
-        InvId?: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const { InvId } = req.query;
+export const successController = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  try {
+    const query = request.query as any;
+    const paymentId = query.pg_order_id
+      ? parseInt(query.pg_order_id, 10)
+      : undefined;
 
-      if (InvId) {
-        const payment = await PaymentRepo.getPaymentById(parseInt(InvId, 10));
-
-        if (payment && payment.status === PaymentStatus.PENDING) {
-          await PaymentRepo.updatePayment(payment.id, {
-            status: PaymentStatus.FAILED,
-          });
-        }
+    if (paymentId && !Number.isNaN(paymentId)) {
+      try {
+        await finalizePayment(paymentId, query.pg_payment_status || "success");
+      } catch (e) {
+        request.log.error(e);
       }
-
-      return reply.status(200).send({
-        success: false,
-        error: "Payment was cancelled or failed",
-      });
-    } catch (error: any) {
-      console.error("Error handling Robokassa fail:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to process fail callback",
-      });
     }
-  },
 
-  async checkRobokassaStatus(
-    req: FastifyRequest<{
-      Params: {
-        invoiceId: string;
-      };
-    }>,
-    reply: FastifyReply,
-  ) {
-    try {
-      const { invoiceId } = req.params;
+    return reply.send({ status: "Payment successful" });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: error.message || "Failed to handle payment success",
+    });
+  }
+};
 
-      const payment = await PaymentRepo.getPaymentById(parseInt(invoiceId, 10));
+export const failController = async (
+  request: FastifyRequest,
+  reply: FastifyReply,
+) => {
+  try {
+    const query = request.query as any;
+    const paymentId = query.pg_order_id
+      ? parseInt(query.pg_order_id, 10)
+      : undefined;
 
-      if (!payment) {
-        return reply.status(404).send({
-          success: false,
-          error: "Payment not found",
-        });
+    if (paymentId && !Number.isNaN(paymentId)) {
+      try {
+        await finalizePayment(paymentId, "failed");
+      } catch (e) {
+        request.log.error(e);
       }
-
-      return reply.status(200).send({
-        success: true,
-        data: {
-          paymentId: payment.id,
-          status: payment.status,
-          amount: Number(payment.amount),
-          chatId: payment.chatId,
-        },
-      });
-    } catch (error: any) {
-      console.error("Error checking Robokassa status:", error);
-      return reply.status(500).send({
-        success: false,
-        error: error.message || "Failed to check payment status",
-      });
     }
-  },
+
+    return reply.send({ status: "Payment failed" });
+  } catch (error: any) {
+    request.log.error(error);
+    return reply.status(500).send({
+      error: error.message || "Failed to handle payment fail",
+    });
+  }
 };

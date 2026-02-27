@@ -7,14 +7,16 @@ import { userRoutes } from "./modules/users/user.route";
 import { chatRoutes } from "./modules/chats/chat.route";
 import { paymentRoutes } from "./modules/payments/payment.route";
 import { reviewRoutes } from "./modules/reviews/review.route";
+import { balanceRoutes } from "./modules/balance/balance.route";
 import fastifyCors from "@fastify/cors";
 import { startBot } from "./bot/bot";
 import fastifyMultipart from "@fastify/multipart";
 import sharp from "sharp";
 import fastifyStatic from "@fastify/static";
 import dotenv from "dotenv";
-
+import formbody from "@fastify/formbody";
 import path from "path";
+import { createFreedomPayService } from "./modules/payments/services/freedompay.service";
 const server = fastify({ logger: true });
 const uploadsDir = path.join(process.cwd(), "uploads");
 
@@ -24,6 +26,8 @@ server.register(fastifyStatic, {
   root: uploadsDir,
   prefix: "/uploads",
 });
+
+server.register(formbody);
 server.register(fastifyMultipart, {
   limits: { fileSize: 1024 * 1024 * 10, files: 1 },
 });
@@ -38,20 +42,26 @@ server.register(fastifyCors, {
     "https://rampantly-reasonable-millipede.cloudpub.ru",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-telegram-user-id"],
   credentials: true,
   preflightContinue: false,
 });
+
+const freedomPayService = createFreedomPayService({
+  merchantId: process.env.MERCHANT_ID!,
+  secretKey: process.env.SECRET_KEY!,
+  paymentUrl: process.env.PAYMENT_URL!,
+  resultUrl: process.env.RESULT_URL!,
+  successUrl: process.env.SUCCESS_URL!,
+  failureUrl: process.env.FAIL_URL!,
+});
+server.register(paymentRoutes, {
+  freedomPayService,
+});
+
 FastifyRoute(
   { fastify: server },
-  [
-    doctorRoutes,
-    userRoutes,
-    chatRoutes,
-    paymentRoutes,
-    reviewRoutes,
-    // PDF теперь не через БД/роуты, а как обычные статические файлы в /uploads
-  ],
+  [doctorRoutes, userRoutes, chatRoutes, reviewRoutes, balanceRoutes],
   {
     prefix: "/api/v1",
   },
@@ -160,11 +170,12 @@ server.get("/api/v1/health", async (request, reply) => {
     timestamp: new Date().toISOString(),
   };
 });
-// Запуск сервера
+
 const start = async () => {
   try {
-    await server.listen({ port: 5174, host: "0.0.0.0" });
-    console.log("✅ Server started successfully");
+    const port = Number(process.env.PORT) || 5174;
+    await server.listen({ port, host: "0.0.0.0" });
+    console.log(`✅ Server started successfully on port ${port}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

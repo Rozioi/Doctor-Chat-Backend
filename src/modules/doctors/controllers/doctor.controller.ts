@@ -3,6 +3,7 @@ import { DoctorRepo } from "../../../repositories/doctorRepo";
 import { DoctorInput } from "../types/doctor.types";
 import { LoginRequest } from "../../users/controllers/user.contorller";
 import { userRepo } from "../../../repositories/userRepo";
+import { ReviewRepo } from "../../../repositories/reviewRepo";
 
 interface ICreateDocotorInput {
   user: LoginRequest;
@@ -87,7 +88,29 @@ export const DoctorControlller = {
   async getDoctors(req: FastifyRequest, reply: FastifyReply) {
     try {
       const doctors = await DoctorRepo.getDoctors();
-      return reply.status(200).send(doctors);
+
+      // Добавляем количество отзывов к каждому профилю
+      const doctorsWithReviews = await Promise.all(
+        doctors.map(async (doctor) => {
+          try {
+            const reviews = await ReviewRepo.getReviewsByDoctorProfileId(
+              doctor.id,
+            );
+            const reviewsCount = reviews.length;
+            return {
+              ...doctor,
+              reviewsCount,
+            };
+          } catch {
+            return {
+              ...doctor,
+              reviewsCount: 0,
+            };
+          }
+        }),
+      );
+
+      return reply.status(200).send(doctorsWithReviews);
     } catch (error) {
       return reply.status(500).send({ error: "Failed to get doctors" });
     }
@@ -105,7 +128,22 @@ export const DoctorControlller = {
       if (!doctor) {
         return reply.status(404).send({ error: "Doctor not found" });
       }
-      return reply.status(200).send(doctor);
+      // добавляем количество отзывов
+      try {
+        const reviews = await ReviewRepo.getReviewsByDoctorProfileId(
+          doctor.id,
+        );
+        const reviewsCount = reviews.length;
+        return reply.status(200).send({
+          ...doctor,
+          reviewsCount,
+        });
+      } catch {
+        return reply.status(200).send({
+          ...doctor,
+          reviewsCount: 0,
+        });
+      }
     } catch (error) {
       return reply.status(500).send({ error: "Failed to get doctor" });
     }

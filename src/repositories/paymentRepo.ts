@@ -8,6 +8,8 @@ export interface CreatePaymentData {
   paymentMethod: PaymentMethod;
   status?: PaymentStatus;
   description?: string;
+  doctorId?: number;
+  serviceType?: string;
 }
 
 export const PaymentRepo = {
@@ -21,6 +23,8 @@ export const PaymentRepo = {
           paymentMethod: data.paymentMethod,
           status: data.status || PaymentStatus.PENDING,
           description: data.description,
+          doctorId: data.doctorId,
+          serviceType: data.serviceType,
         },
         include: {
           user: true,
