@@ -23,6 +23,7 @@ model User {
   doctorChats     Chat[]         @relation("DoctorChats")
   balance         Balance?
   payments        Payment[]
+  doctorPayments  Payment[]      @relation("DoctorPayments")
   pdfDocuments    PDFDocument[]
   reviewsGiven    Review[]       @relation("ReviewAuthor")
   reviewsReceived Review[]       @relation("ReviewDoctor")
@@ -93,22 +94,33 @@ model Payment {
   id                 Int           @id @default(autoincrement())
   userId             Int
   user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctorId           Int?
+  doctor             User?         @relation("DoctorPayments", fields: [doctorId], references: [id], onDelete: SetNull)
   chatId             Int?
   chat               Chat?         @relation(fields: [chatId], references: [id], onDelete: SetNull)
   amount             Decimal       @db.Decimal(10, 2)
   paymentMethod      PaymentMethod
   status             PaymentStatus @default(PENDING)
   description        String?
+  serviceType        String?
   // Robokassa-specific fields
   robokassaInvoiceId String?       @unique
   robokassaSignature String?
   robokassaOutSum    String?
+  // FreedomPay-specific fields
+  freedompayPaymentId   String?
+  freedompayOrderId     String?
+  freedompayRedirectUrl String?
   splitAmount        Decimal?      @db.Decimal(10, 2)
   splitMerchantId    String?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@index([robokassaInvoiceId])
+  @@index([doctorId])
+  @@index([serviceType])
+  @@index([freedompayPaymentId])
+  @@index([freedompayOrderId])
 }
 
 model PDFDocument {
@@ -137,6 +149,7 @@ enum PaymentMethod {
   CARD
   BANK_TRANSFER
   ROBOKASSA
+  FREEDOMPAY
 }
 
 enum PaymentStatus {
