@@ -19,6 +19,75 @@ const createMainKeyboard = () => {
 };
 
 bot.command("start", async (ctx) => {
+  const payload = ctx.match;
+  if (payload && typeof payload === "string" && payload.startsWith("chat_")) {
+    const chatId = parseInt(payload.replace("chat_", ""), 10);
+    const userId = ctx.from?.id;
+
+    if (!userId) return;
+
+    try {
+      const { ChatRepo } = await import("../repositories/chatRepo");
+      const { userRepo } = await import("../repositories/userRepo");
+
+      const chat = await ChatRepo.getChatById(chatId);
+      if (!chat) {
+        await ctx.reply("❌ Чат не найден.");
+        return;
+      }
+
+      const user = await userRepo.getUserByTelegramId(userId.toString());
+      if (!user) {
+        await ctx.reply("❌ Ваш профиль не найден на платформе.");
+        return;
+      }
+
+      let partnerId;
+      let partnerRole;
+
+      if (chat.patientId === user.id) {
+        const doctorUser =
+          chat.doctor || Math.max(0, chat.doctorId);
+        const fetchedDocUser = await userRepo.getUserById(chat.doctorId);
+        partnerId = Number(fetchedDocUser?.telegramId);
+        partnerRole = "Врач";
+      } else if (chat.doctorId === user.id) {
+        const patientUser =
+          chat.patient || Math.max(0, chat.patientId);
+        const fetchedPatUser = await userRepo.getUserById(chat.patientId);
+        partnerId = Number(fetchedPatUser?.telegramId);
+        partnerRole = "Пациент";
+      } else {
+        await ctx.reply("❌ У вас нет доступа к этому чату.");
+        return;
+      }
+
+      if (!partnerId) {
+        await ctx.reply("❌ Пользователь-собеседник еще не подключил Telegram.");
+        return;
+      }
+
+      activeChats.set(userId, partnerId);
+      activeChats.set(partnerId, userId);
+
+      await ctx.api.sendMessage(
+        userId,
+        `✅ Вы успешно подключились к чату #${chatId}.\nВаш собеседник: ${partnerRole}.\nВы можете отправлять сообщения, фото и документы анонимно. Для завершения сеанса введите /stop`
+      );
+
+      await ctx.api.sendMessage(
+        partnerId,
+        `🔔 Ваш ${partnerRole.toLowerCase()} подключился к чату #${chatId}! Теперь вы можете общаться. Для завершения сеанса введите /stop`
+      );
+
+      return;
+    } catch (error) {
+      console.error(error);
+      await ctx.reply("❌ Ошибка при подключении к чату.");
+      return;
+    }
+  }
+
   const welcomeText = `👋 Добро пожаловать в MED EXPERT EU!
 
 Ваш доступ ĸ «Золотому стандарту европейсĸой медицины». Получите независимое «Второе мнение» от эĸспертов из ЕС онлайн.
@@ -127,8 +196,7 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
 Сервис не оказывает экстренную медицинскую помощь. При острой боли немедленно вызывайте Скорую помощь (103 / 112).
 
 📄 [Читать текст Оферты](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/user-agreement-public-offer-med-expert-eu.pdf)
-📄 [Читать текст Политики Конфиденциальности](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/privacy-policy-and-consent-to-data-processing.pdf)`
-,
+📄 [Читать текст Политики Конфиденциальности](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/privacy-policy-and-consent-to-data-processing.pdf)`,
     {
       parse_mode: "Markdown",
       reply_markup: new InlineKeyboard()
@@ -180,10 +248,76 @@ bot.callbackQuery("back_to_main", async (ctx) => {
     },
   );
 });
+const activeChats = new Map<number, number>();
+
+bot.command("stop", async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  const partnerId = clearActiveChat(userId);
+
+  if (!partnerId) return;
+
+  await ctx.api.sendMessage(
+    userId,
+    "🏁 Ваш текущий чат завершен. \n\nНадеемся, консультация была полезной! Если у вас возникнут новые вопросы, вы всегда можете начать новую экспертизу через главное меню.",
+  );
+  await ctx.api.sendMessage(
+    partnerId,
+    "🏁 Собеседник завершил текущий сеанс чата. \n\nЧат закрыт.",
+  );
+});
+
+export function clearActiveChat(userId: number): number | null {
+  const partnerId = activeChats.get(userId);
+  if (partnerId) {
+    activeChats.delete(userId);
+    activeChats.delete(partnerId);
+    return partnerId;
+  }
+  return null;
+}
+
+bot.command("help", async (ctx) => {
+  await ctx.reply(
+    `❓ Помощь по платформе MED EXPERT EU:
+
+/start - Главное меню
+/help - Эта справка
+
+Наши услуги:
+📊 Европейская медицинская экспертиза
+🏥 Организация очного приема у партнеров
+🛡️ Гарантия безопасности платежей`,
+    {
+      reply_markup: createMainKeyboard(),
+      parse_mode: "Markdown",
+    },
+  );
+});
 
 bot.on("message", async (ctx) => {
-  const message = ctx.message.text?.toLowerCase();
+  const userId = ctx.from?.id;
+  if (!userId) return;
 
+  const partnerId = activeChats.get(userId);
+
+  if (partnerId) {
+    // Don't forward commands
+    if (ctx.message.text?.startsWith("/")) {
+      return;
+    }
+
+    try {
+      await ctx.copyMessage(partnerId);
+    } catch (e) {
+      console.error(e);
+      await ctx.reply("❌ Ошибка при отправке сообщения собеседнику.");
+    }
+    return;
+  }
+
+  const message = ctx.message.text?.toLowerCase();
   if (!message) return;
 
   if (
@@ -206,7 +340,7 @@ bot.on("message", async (ctx) => {
     message.includes("безопасн")
   ) {
     await ctx.reply(
-      "🛡️ Мы гарантируем безопасность платежей через систему Escrow. Средства защищены до получения заключения.",
+      "🛡️ Мы гарантируем безопасность платежей через систему Escrow.",
       {
         reply_markup: new InlineKeyboard().text(
           "🛡️ Подробнее о гарантиях",
@@ -215,38 +349,15 @@ bot.on("message", async (ctx) => {
       },
     );
   } else if (message.includes("помощь") || message.includes("help")) {
-    await ctx.reply(
-      "Используйте кнопки меню для навигации или напишите /start",
-    );
+    await ctx.reply("Используйте кнопки меню или напишите /start");
   } else {
-    await ctx.reply(
-      "🔍 Чем могу помочь? Перейдите к нашей платформе для связи с европейскими экспертами 👇",
-      {
-        reply_markup: new InlineKeyboard().webApp(
-          "⤵️ НАЧАТЬ ЭКСПЕРТИЗУ",
-          "https://doctor-chat-c-lient.vercel.app",
-        ),
-      },
-    );
+    await ctx.reply("🔍 Чем могу помочь? Перейдите к нашей платформе 👇", {
+      reply_markup: new InlineKeyboard().webApp(
+        "⤵️ НАЧАТЬ ЭКСПЕРТИЗУ",
+        "https://doctor-chat-c-lient.vercel.app",
+      ),
+    });
   }
-});
-
-bot.command("help", async (ctx) => {
-  await ctx.reply(
-    `❓ Помощь по платформе MED EXPERT EU:
-
-/start - Главное меню
-/help - Эта справка
-
-Наши услуги:
-📊 Европейская медицинская экспертиза
-🏥 Организация очного приема у партнеров
-🛡️ Гарантия безопасности платежей`,
-    {
-      reply_markup: createMainKeyboard(),
-      parse_mode: "Markdown",
-    },
-  );
 });
 
 export function startBot() {

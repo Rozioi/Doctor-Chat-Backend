@@ -34,6 +34,24 @@ export const ChatRepo = {
     }
   },
 
+  async getChatById(id: number) {
+    try {
+      return await prisma.chat.findUnique({
+        where: { id },
+        include: {
+          patient: true,
+          doctor: {
+            include: {
+              doctorProfile: true,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      throw new Error("Failed to get chat by ID");
+    }
+  },
+
   async getChatsByPatientId(patientId: number) {
     try {
       const chats = await prisma.chat.findMany({

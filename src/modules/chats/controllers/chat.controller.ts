@@ -221,8 +221,16 @@ export const ChatController = {
       const chat = await ChatRepo.completeChat(chatId);
 
       // Automated Bot Notifications
-      const bot = (await import("../../../bot/bot")).default;
+      const { default: bot, clearActiveChat } = await import("../../../bot/bot");
       const { InlineKeyboard } = await import("grammy");
+
+      // Clear active chats in bot
+      if (chat.patient && chat.patient.telegramId) {
+        clearActiveChat(Number(chat.patient.telegramId));
+      }
+      if (chat.doctor && chat.doctor.telegramId) {
+        clearActiveChat(Number(chat.doctor.telegramId));
+      }
 
       if (chat.tariffType === "VIP") {
         // Notification for VIP Patient
@@ -262,6 +270,131 @@ export const ChatController = {
       req.log.error(error);
       return reply.status(500).send({
         error: error.message || "Failed to complete chat",
+      });
+    }
+  },
+  async createQuestionnaire(
+    req: FastifyRequest<{
+      Body: {
+        orderId: number;
+        fullName: string;
+        birthDate: string | null;
+        location: string;
+        mainRequest: string;
+        history: string;
+        currentTherapy: string;
+        allergies: string;
+        fileUrls?: string[];
+      };
+    }>,
+    reply: FastifyReply,
+  ) {
+    try {
+      const {
+        orderId,
+        fullName,
+        birthDate,
+        location,
+        mainRequest,
+        history,
+        currentTherapy,
+        allergies,
+        fileUrls,
+      } = req.body;
+      const telegramId = req.headers["x-telegram-user-id"] as string;
+
+      if (!telegramId) {
+        return reply.status(401).send({ error: "User not authenticated" });
+      }
+
+      if (!orderId) {
+        return reply.status(400).send({ error: "Order ID is required" });
+      }
+
+      const payment = await PaymentRepo.getPaymentById(orderId);
+      if (!payment || !payment.doctorId || !payment.userId) {
+        return reply
+          .status(404)
+          .send({ error: "Payment, doctor or user not found" });
+      }
+
+      let chat;
+      if (payment.chatId) {
+        chat = payment.chat;
+      }
+
+      if (!chat) {
+        chat = await ChatRepo.createChat({
+          patientId: payment.userId,
+          doctorId: payment.doctorId,
+          serviceType: payment.serviceType || "consultation",
+          amount: Number(payment.amount),
+        });
+
+        await PaymentRepo.updatePayment(payment.id, { chatId: chat.id });
+      }
+
+      const bot = (await import("../../../bot/bot")).default;
+      const { InlineKeyboard, InputFile } = await import("grammy");
+      const path = await import("path");
+
+      const doctorUser =
+        payment.chat?.doctor || (await userRepo.getUserById(payment.doctorId));
+
+      if (doctorUser && doctorUser.telegramId) {
+        const questionnaireInfo =
+          `📋 *Новая анкета пациента*\n\n` +
+          `*ФИО:* ${fullName}\n` +
+          `*Дата рождения:* ${birthDate || "Не указана"}\n` +
+          `*Локация:* ${location}\n\n` +
+          `*Основной запрос:*\n${mainRequest}\n\n` +
+          `*Предыстория:*\n${history || "Нет"}\n\n` +
+          `*Текущая терапия:*\n${currentTherapy || "Нет"}\n\n` +
+          `*Аллергии:*\n${allergies || "Нет"}`;
+
+        const botUsername = bot.botInfo?.username || "MedExpert_test_bot";
+        const keyboard = new InlineKeyboard().url(
+          "💬 Начать чат с пациентом",
+          `https://t.me/${botUsername}?start=chat_${chat.id}`,
+        );
+
+        await bot.api.sendMessage(doctorUser.telegramId, questionnaireInfo, {
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        });
+
+        if (fileUrls && fileUrls.length > 0) {
+          const uploadsDir = path.join(process.cwd(), "uploads");
+          for (const url of fileUrls) {
+            try {
+              let fileInput: any = url;
+
+              // If it's a local URL, use the local file path for Telegram
+              if (url.includes("/uploads/")) {
+                const fileName = url.split("/uploads/").pop();
+                if (fileName) {
+                  const filePath = path.join(uploadsDir, fileName);
+                  fileInput = new InputFile(filePath);
+                }
+              }
+
+              if (url.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/)) {
+                await bot.api.sendPhoto(doctorUser.telegramId, fileInput);
+              } else {
+                await bot.api.sendDocument(doctorUser.telegramId, fileInput);
+              }
+            } catch (err: any) {
+              req.log.error({ err }, `Failed to send file ${url} to doctor`);
+            }
+          }
+        }
+      }
+
+      return reply.status(200).send({ success: true, data: chat });
+    } catch (error: any) {
+      req.log.error(error);
+      return reply.status(500).send({
+        error: error.message || "Failed to submit questionnaire",
       });
     }
   },

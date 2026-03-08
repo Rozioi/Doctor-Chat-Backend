@@ -10,7 +10,8 @@ export const chatRoutes: TRouteFunction = (
   fastify.post("/chats", ChatController.createChat);
   fastify.get("/chats", ChatController.getChats);
   fastify.post("/chats/invite", ChatController.sendChatInvite);
-   fastify.post("/chats/:chatId/complete", ChatController.completeChat);
+  fastify.post("/chats/:chatId/complete", ChatController.completeChat);
+  fastify.post("/questionnaires", ChatController.createQuestionnaire);
+
   done();
 };
-

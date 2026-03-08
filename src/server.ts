@@ -32,19 +32,23 @@ server.register(fastifyMultipart, {
   limits: { fileSize: 1024 * 1024 * 10, files: 1 },
 });
 server.register(fastifyCors, {
-  origin: [
-    "https://rozioi.pro",
-    "*",
-    "http://localhost:3000",
-    "http://localhost:5174",
-    "https://soundly-primary-protozoa.cloudpub.ru",
-    "https://doctor-chat-c-lient.vercel.app",
-    "https://rampantly-reasonable-millipede.cloudpub.ru",
-  ],
+  origin: (origin, cb) => {
+    if (
+      !origin ||
+      origin.endsWith(".cloudpub.ru") ||
+      origin === "http://localhost:3000" ||
+      origin === "http://localhost:5174" ||
+      origin === "https://doctor-chat-c-lient.vercel.app" ||
+      origin === "https://rozioi.pro"
+    ) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error("Not allowed by CORS"), false);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-telegram-user-id"],
   credentials: true,
-  preflightContinue: false,
 });
 
 const freedomPayService = createFreedomPayService({
