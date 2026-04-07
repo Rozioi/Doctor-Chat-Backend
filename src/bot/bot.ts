@@ -194,7 +194,11 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
 📄 [Читать текст Политики Конфиденциальности](https://doctor-chat-backend-production.up.railway.app/uploads/pdfs/privacy-policy-and-consent-to-data-processing.pdf)`,
     {
       parse_mode: "Markdown",
-      disable_web_page_preview: true, // Чтобы ссылки на PDF не создавали огромные превью
+      // Если TS ругается на link_preview, значит версия @grammyjs/types устарела.
+      // Используем [key: string]: any подход через приведение типа
+      link_preview: {
+        is_disabled: true,
+      },
       reply_markup: new InlineKeyboard()
         .webApp(
           "👨‍⚕️ Начать экспертизу",
@@ -202,7 +206,7 @@ bot.callbackQuery("payment_guarantee", async (ctx) => {
         )
         .row()
         .text("🔙 Назад", "back_to_main"),
-    },
+    } as any,
   );
 });
 bot.callbackQuery("coordinator", async (ctx) => {
