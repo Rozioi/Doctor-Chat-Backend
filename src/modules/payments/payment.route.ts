@@ -5,6 +5,8 @@ import {
   resultController,
   successController,
   failController,
+  createKaspiPaymentController,
+  kaspiWebhookController,
 } from "./controllers/payment.controller";
 import { PaymentRepo } from "../../repositories/paymentRepo";
 
@@ -13,7 +15,7 @@ export const paymentRoutes: TRouteFunction = (
   _opts,
   done,
 ) => {
-  const { freedomPayService } = _opts;
+  const { freedomPayService, kaspiService } = _opts;
 
   fastify.post(
     "/api/v1/payment/create",
@@ -24,6 +26,17 @@ export const paymentRoutes: TRouteFunction = (
 
   fastify.get("/api/v1/payment/success", successController);
   fastify.get("/api/v1/payment/fail", failController);
+
+  // Каспи (ApiPay.kz)
+  fastify.post(
+    "/api/v1/payment/kaspi/create",
+    createKaspiPaymentController(kaspiService),
+  );
+
+  fastify.post(
+    "/api/v1/payment/kaspi/webhook",
+    kaspiWebhookController(kaspiService),
+  );
 
   // Ручной финал платежа с фронта (страница успешной оплаты)
   fastify.post("/api/v1/payment/finalize", async (request, reply) => {
@@ -73,6 +86,34 @@ export const paymentRoutes: TRouteFunction = (
       return reply.status(500).send({
         error: error.message || "Failed to get payments",
       });
+    }
+  });
+
+  // Получить статус платежа по ID
+  fastify.get("/api/v1/payment/:id/status", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const paymentId = parseInt(id, 10);
+
+    if (Number.isNaN(paymentId)) {
+      return reply.status(400).send({ error: "Invalid payment id" });
+    }
+
+    try {
+      const payment = await PaymentRepo.getPaymentById(paymentId);
+      if (!payment) {
+        return reply.status(404).send({ error: "Payment not found" });
+      }
+
+      return reply.send({
+        success: true,
+        status: payment.status,
+        chatId: payment.chatId,
+      });
+    } catch (error: any) {
+      request.log.error(error);
+      return reply
+        .status(500)
+        .send({ error: error.message || "Failed to get payment status" });
     }
   });
 

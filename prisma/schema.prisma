@@ -111,6 +111,10 @@ model Payment {
   freedompayPaymentId   String?
   freedompayOrderId     String?
   freedompayRedirectUrl String?
+  // Kaspi (ApiPay.kz) fields
+  kaspiInvoiceId        String?       @unique
+  kaspiExternalId       String?
+  kaspiPhone           String?
   splitAmount        Decimal?      @db.Decimal(10, 2)
   splitMerchantId    String?
   createdAt          DateTime      @default(now())
@@ -121,6 +125,7 @@ model Payment {
   @@index([serviceType])
   @@index([freedompayPaymentId])
   @@index([freedompayOrderId])
+  @@index([kaspiInvoiceId])
 }
 
 model PDFDocument {
@@ -150,6 +155,7 @@ enum PaymentMethod {
   BANK_TRANSFER
   ROBOKASSA
   FREEDOMPAY
+  KASPI
 }
 
 enum PaymentStatus {

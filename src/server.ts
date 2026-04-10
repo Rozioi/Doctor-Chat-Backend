@@ -17,6 +17,7 @@ import dotenv from "dotenv";
 import formbody from "@fastify/formbody";
 import path from "path";
 import { createFreedomPayService } from "./modules/payments/services/freedompay.service";
+import { createKaspiService } from "./modules/payments/services/kaspi.service";
 const server = fastify({ logger: true });
 const uploadsDir = path.join(process.cwd(), "uploads");
 
@@ -59,8 +60,19 @@ const freedomPayService = createFreedomPayService({
   successUrl: process.env.SUCCESS_URL!,
   failureUrl: process.env.FAIL_URL!,
 });
+const kaspiService = createKaspiService({
+  apiKey:
+    process.env.APIPAY_API_KEY! ||
+    "6c1147b55e21726f5131bd93fee83b699167a0affa4542555a79f75e1dafe3c9",
+  webhookSecret: process.env.APIPAY_WEBHOOK_SECRET!,
+  baseUrl: process.env.APIPAY_BASE_URL || "https://bpapi.bazarbay.site/api/v1",
+  itemPrice: Number(process.env.KASPI_ITEM_PRICE) || 65000,
+  catalogItemId: Number(process.env.KASPI_CATALOG_ITEM_ID) || 608544,
+});
+
 server.register(paymentRoutes, {
   freedomPayService,
+  kaspiService,
 });
 
 FastifyRoute(
