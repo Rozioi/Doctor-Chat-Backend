@@ -23,14 +23,18 @@ export const finalizePayment = async (
   }
 
   const normalizedStatus = (paymentStatus || "").toLowerCase();
-  
+
   let finalStatus: PaymentStatus = PaymentStatus.FAILED;
   let isSuccess = false;
 
-  if (["success", "ok", "completed", "paid", "active"].includes(normalizedStatus)) {
+  if (
+    ["success", "ok", "completed", "paid", "active"].includes(normalizedStatus)
+  ) {
     finalStatus = PaymentStatus.COMPLETED;
     isSuccess = true;
-  } else if (["cancelled", "expired", "failed_attempts"].includes(normalizedStatus)) {
+  } else if (
+    ["cancelled", "expired", "failed_attempts"].includes(normalizedStatus)
+  ) {
     finalStatus = PaymentStatus.CANCELLED;
   } else if (["refunded"].includes(normalizedStatus)) {
     finalStatus = PaymentStatus.REFUNDED;
@@ -132,8 +136,8 @@ export const finalizePayment = async (
 
     // Если был возврат, уведомляем врача/админа (опционально)
     if (finalStatus === PaymentStatus.REFUNDED && payment.chatId) {
-        // Можно добавить логику уведомления о возврате
-        console.log(`Payment ${paymentId} was refunded`);
+      // Можно добавить логику уведомления о возврате
+      console.log(`Payment ${paymentId} was refunded`);
     }
   }
 };
@@ -397,6 +401,16 @@ export const kaspiWebhookController =
   (kaspiService: any) =>
   async (request: FastifyRequest, reply: FastifyReply) => {
     try {
+      const ip = request.ip;
+
+      // 2. Полный URL, на который пришел запрос
+      const fullUrl = `${request.protocol}://${request.hostname}${request.url}`;
+
+      // 3. Все заголовки (оттуда тоже можно вытащить IP, если вы за прокси)
+      const headers = request.headers;
+
+      console.log(`Запрос пришел с IP: ${ip}`);
+      console.log(`На URL: ${fullUrl}`);
       const signature = request.headers["x-webhook-signature"] as string;
 
       const body = request.body as any;
@@ -416,19 +430,22 @@ export const kaspiWebhookController =
 
         if (!Number.isNaN(paymentId)) {
           // If it's a refund, we force the status to 'refunded'
-          const status = event === "invoice.refunded" ? "refunded" : invoice.status;
+          const status =
+            event === "invoice.refunded" ? "refunded" : invoice.status;
           await finalizePayment(paymentId, status);
         }
       } else if (event && event.startsWith("subscription.")) {
         const kaspiInvoiceId = body.invoice_id?.toString();
         if (kaspiInvoiceId) {
-          const payment = await PaymentRepo.getPaymentByKaspiInvoiceId(kaspiInvoiceId);
+          const payment =
+            await PaymentRepo.getPaymentByKaspiInvoiceId(kaspiInvoiceId);
           if (payment) {
             let status = "pending";
             if (event === "subscription.payment_succeeded") status = "paid";
             else if (event === "subscription.payment_failed") status = "failed";
             else if (event === "subscription.expired") status = "expired";
-            else if (event === "subscription.grace_period_started") status = "pending";
+            else if (event === "subscription.grace_period_started")
+              status = "pending";
 
             await finalizePayment(payment.id, status);
           }

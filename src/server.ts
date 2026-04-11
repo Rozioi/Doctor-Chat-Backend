@@ -63,7 +63,9 @@ const kaspiService = createKaspiService({
   apiKey:
     process.env.APIPAY_API_KEY! ||
     "6c1147b55e21726f5131bd93fee83b699167a0affa4542555a79f75e1dafe3c9",
-  webhookSecret: process.env.APIPAY_WEBHOOK_SECRET!,
+  webhookSecret:
+    process.env.APIPAY_WEBHOOK_SECRET! ||
+    "ba42d7b6e8dc2cb4895090c45a0275163c7e8ca246bb30a0c6d19c6ea50d21fb",
   baseUrl: process.env.APIPAY_BASE_URL || "https://bpapi.bazarbay.site/api/v1",
   itemPrice: Number(process.env.KASPI_ITEM_PRICE) || 65000,
   catalogItemId: Number(process.env.KASPI_CATALOG_ITEM_ID) || 608544,
