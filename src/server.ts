@@ -37,8 +37,7 @@ server.register(fastifyCors, {
     if (
       !origin ||
       origin.endsWith(".cloudpub.ru") ||
-      origin === "http://localhost:3000" ||
-      origin === "http://localhost:5174" ||
+      origin === "http://bpapi.bazarbay.site" ||
       origin === "https://doctor-chat-c-lient.vercel.app" ||
       origin === "https://rozioi.pro"
     ) {
