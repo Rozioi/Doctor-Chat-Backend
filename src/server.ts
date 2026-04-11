@@ -52,7 +52,7 @@ server.register(fastifyCors, {
     if (
       !origin ||
       origin.endsWith(".cloudpub.ru") ||
-      origin === "http://bpapi.bazarbay.site" ||
+      origin === "https://bpapi.bazarbay.site" ||
       origin === "https://doctor-chat-c-lient.vercel.app" ||
       origin === "https://rozioi.pro"
     ) {
