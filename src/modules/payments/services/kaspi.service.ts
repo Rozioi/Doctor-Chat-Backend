@@ -58,16 +58,34 @@ export const createKaspiService = (config: KaspiConfig) => {
   };
 
   const verifySignature = (payload: string, signature: string): boolean => {
-    if (!signature) return false;
+    if (!signature) {
+      console.log("[Kaspi Webhook] No signature provided");
+      return false;
+    }
 
-    // Signature format is usually "sha256=<hex>"
-    const [algo, receivedHash] = signature.split("=");
-    if (algo !== "sha256") return false;
+    let receivedHash = signature;
+    if (signature.includes("=")) {
+      const [algo, hash] = signature.split("=");
+      if (algo !== "sha256") {
+        console.log(`[Kaspi Webhook] Unsupported algorithm: ${algo}`);
+        return false;
+      }
+      receivedHash = hash;
+    }
 
     const expectedHash = crypto
       .createHmac("sha256", config.webhookSecret)
       .update(payload)
       .digest("hex");
+
+    console.log(`[Kaspi Webhook] Payload length: ${payload.length}`);
+    console.log(`[Kaspi Webhook] Expected Hash: ${expectedHash}`);
+    console.log(`[Kaspi Webhook] Received Hash: ${receivedHash}`);
+
+    if (expectedHash.length !== receivedHash.length) {
+      console.log("[Kaspi Webhook] Hash length mismatch");
+      return false;
+    }
 
     return crypto.timingSafeEqual(
       Buffer.from(expectedHash),

@@ -415,7 +415,11 @@ export const kaspiWebhookController =
 
       const body = request.body as any;
       const rawBody = JSON.stringify(body);
-      console.log(rawBody);
+      
+      console.log(`[Kaspi Webhook] Headers: ${JSON.stringify(request.headers)}`);
+      console.log(`[Kaspi Webhook] Signature Header: ${signature}`);
+      console.log(`[Kaspi Webhook] Payload: ${rawBody}`);
+
       const isValid = kaspiService.verifySignature(rawBody, signature);
 
       if (!isValid && process.env.NODE_ENV === "production") {
