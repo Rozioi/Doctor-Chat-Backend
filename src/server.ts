@@ -23,6 +23,21 @@ const uploadsDir = path.join(process.cwd(), "uploads");
 
 dotenv.config();
 
+server.addContentTypeParser(
+  "application/json",
+  { parseAs: "string" },
+  (req, body, done) => {
+    try {
+      const json = JSON.parse(body as string);
+      (req as any).rawBody = body;
+      done(null, json);
+    } catch (err) {
+      err.status = 400;
+      done(err, null);
+    }
+  },
+);
+
 server.register(fastifyStatic, {
   root: uploadsDir,
   prefix: "/uploads",

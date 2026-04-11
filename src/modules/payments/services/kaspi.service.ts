@@ -59,38 +59,40 @@ export const createKaspiService = (config: KaspiConfig) => {
 
   const verifySignature = (payload: string, signature: string): boolean => {
     if (!signature) {
-      console.log("[Kaspi Webhook] No signature provided");
+      console.log("[Kaspi Webhook] No signature header found");
       return false;
     }
 
-    let receivedHash = signature;
-    if (signature.includes("=")) {
-      const [algo, hash] = signature.split("=");
-      if (algo !== "sha256") {
-        console.log(`[Kaspi Webhook] Unsupported algorithm: ${algo}`);
-        return false;
-      }
-      receivedHash = hash;
-    }
-
-    const expectedHash = crypto
+    const hash = crypto
       .createHmac("sha256", config.webhookSecret)
       .update(payload)
       .digest("hex");
 
-    console.log(`[Kaspi Webhook] Payload length: ${payload.length}`);
-    console.log(`[Kaspi Webhook] Expected Hash: ${expectedHash}`);
-    console.log(`[Kaspi Webhook] Received Hash: ${receivedHash}`);
+    const expected = `sha256=${hash}`;
 
-    if (expectedHash.length !== receivedHash.length) {
-      console.log("[Kaspi Webhook] Hash length mismatch");
+    console.log(`[Kaspi Webhook] Payload length (bytes): ${Buffer.byteLength(payload)}`);
+    console.log(`[Kaspi Webhook] Expected Header: ${expected}`);
+    console.log(`[Kaspi Webhook] Received Header: ${signature}`);
+
+    if (expected.length !== signature.length) {
+      // Robust check: maybe they sent it without 'sha256=' prefix?
+      if (hash === signature) {
+        console.log("[Kaspi Webhook] Signature matched without prefix");
+        return true;
+      }
+      console.log("[Kaspi Webhook] Signature length mismatch");
       return false;
     }
 
-    return crypto.timingSafeEqual(
-      Buffer.from(expectedHash),
-      Buffer.from(receivedHash),
-    );
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(expected),
+        Buffer.from(signature),
+      );
+    } catch (e) {
+      console.log("[Kaspi Webhook] Error in timingSafeEqual", e);
+      return false;
+    }
   };
 
   return {
