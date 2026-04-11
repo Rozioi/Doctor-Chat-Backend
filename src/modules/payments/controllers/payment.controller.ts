@@ -414,7 +414,7 @@ export const kaspiWebhookController =
       const signature = request.headers["x-webhook-signature"] as string;
 
       const body = request.body as any;
-      const rawBody = (request as any).rawBody || JSON.stringify(body);
+      const rawBody = (request.raw as any).rawBody || JSON.stringify(body);
       
       console.log(`[Kaspi Webhook] Headers: ${JSON.stringify(request.headers)}`);
       console.log(`[Kaspi Webhook] Signature Header: ${signature}`);

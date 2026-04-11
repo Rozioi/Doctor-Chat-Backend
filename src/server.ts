@@ -31,8 +31,8 @@ server.addContentTypeParser(
       const json = JSON.parse(body as string);
       (req as any).rawBody = body;
       done(null, json);
-    } catch (err) {
-      err.status = 400;
+    } catch (err: any) {
+      err.statusCode = 400;
       done(err, null);
     }
   },
