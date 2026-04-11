@@ -25,10 +25,10 @@ dotenv.config();
 
 server.addContentTypeParser(
   "application/json",
-  { parseAs: "string" },
+  { parseAs: "buffer" },
   (req, body, done) => {
     try {
-      const json = JSON.parse(body as string);
+      const json = JSON.parse(body.toString("utf-8"));
       (req as any).rawBody = body;
       done(null, json);
     } catch (err: any) {

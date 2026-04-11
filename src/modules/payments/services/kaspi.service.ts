@@ -57,7 +57,10 @@ export const createKaspiService = (config: KaspiConfig) => {
     return responseData as KaspiInvoiceResponse;
   };
 
-  const verifySignature = (payload: string, signature: string): boolean => {
+  const verifySignature = (
+    payload: string | Buffer,
+    signature: string,
+  ): boolean => {
     if (!signature) {
       console.log("[Kaspi Webhook] No signature header found");
       return false;
@@ -70,7 +73,11 @@ export const createKaspiService = (config: KaspiConfig) => {
 
     const expected = `sha256=${hash}`;
 
-    console.log(`[Kaspi Webhook] Payload length (bytes): ${Buffer.byteLength(payload)}`);
+    const payloadLength = Buffer.isBuffer(payload)
+      ? payload.length
+      : Buffer.byteLength(payload);
+
+    console.log(`[Kaspi Webhook] Payload length (bytes): ${payloadLength}`);
     console.log(`[Kaspi Webhook] Expected Header: ${expected}`);
     console.log(`[Kaspi Webhook] Received Header: ${signature}`);
 
