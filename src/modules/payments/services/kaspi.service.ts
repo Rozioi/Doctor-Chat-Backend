@@ -39,6 +39,7 @@ export const createKaspiService = (config: KaspiConfig) => {
           },
         ],
         phone_number: data.phoneNumber.replace("+", ""),
+        external_order_id: data.externalOrderId,
         description: data.description,
       }),
     });

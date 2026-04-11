@@ -195,5 +195,30 @@ export const PaymentRepo = {
       throw new Error("Failed to get payments by chat id");
     }
   },
+
+  async getPaymentByKaspiInvoiceId(kaspiInvoiceId: string) {
+    try {
+      const payment = await prisma.payment.findUnique({
+        where: { kaspiInvoiceId },
+        include: {
+          user: true,
+          chat: {
+            include: {
+              patient: true,
+              doctor: {
+                include: {
+                  doctorProfile: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return payment;
+    } catch (error) {
+      throw new Error("Failed to get payment by Kaspi invoice id");
+    }
+  },
 };
 
