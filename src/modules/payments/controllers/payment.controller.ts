@@ -24,7 +24,7 @@ export const finalizePayment = async (
 
   const normalizedStatus = (paymentStatus || "").toLowerCase();
 
-  let finalStatus: PaymentStatus = PaymentStatus.FAILED;
+  let finalStatus: PaymentStatus = payment.status;
   let isSuccess = false;
 
   if (
@@ -40,6 +40,10 @@ export const finalizePayment = async (
     finalStatus = PaymentStatus.REFUNDED;
   } else if (["failed"].includes(normalizedStatus)) {
     finalStatus = PaymentStatus.FAILED;
+  } else if (
+    ["pending", "processing", "waiting"].includes(normalizedStatus)
+  ) {
+    finalStatus = PaymentStatus.PENDING;
   }
 
   if (!payment.chatId && isSuccess) {
