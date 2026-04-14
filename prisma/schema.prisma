@@ -198,3 +198,10 @@ model Review {
   @@index([patientId])
   @@index([chatId])
 }
+
+model ActiveChatSession {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique
+  partnerId String
+  createdAt DateTime @default(now())
+}

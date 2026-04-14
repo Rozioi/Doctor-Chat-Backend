@@ -1,4 +1,5 @@
 import { Bot, InlineKeyboard } from "grammy";
+import { prisma } from "../modules/common/prisma";
 
 const token = process.env.BOT_TOKEN;
 
@@ -67,8 +68,7 @@ bot.command("start", async (ctx) => {
         return;
       }
 
-      activeChats.set(userId, partnerId);
-      activeChats.set(partnerId, userId);
+      await setActiveChat(userId.toString(), partnerId.toString());
 
       await ctx.api.sendMessage(
         userId,
@@ -247,13 +247,31 @@ bot.callbackQuery("back_to_main", async (ctx) => {
     },
   );
 });
-const activeChats = new Map<number, number>();
+async function setActiveChat(userId: string, partnerId: string) {
+  await prisma.activeChatSession.upsert({
+    where: { userId: userId },
+    update: { partnerId: partnerId },
+    create: { userId: userId, partnerId: partnerId },
+  });
+  await prisma.activeChatSession.upsert({
+    where: { userId: partnerId },
+    update: { partnerId: userId },
+    create: { userId: partnerId, partnerId: userId },
+  });
+}
+
+async function getPartnerId(userId: string): Promise<number | null> {
+  const session = await prisma.activeChatSession.findUnique({
+    where: { userId: userId },
+  });
+  return session ? parseInt(session.partnerId, 10) : null;
+}
 
 bot.command("stop", async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const partnerId = clearActiveChat(userId);
+  const partnerId = await clearActiveChat(userId.toString());
 
   if (!partnerId) return;
 
@@ -267,12 +285,19 @@ bot.command("stop", async (ctx) => {
   );
 });
 
-export function clearActiveChat(userId: number): number | null {
-  const partnerId = activeChats.get(userId);
-  if (partnerId) {
-    activeChats.delete(userId);
-    activeChats.delete(partnerId);
-    return partnerId;
+export async function clearActiveChat(userId: string): Promise<number | null> {
+  const session = await prisma.activeChatSession.findUnique({
+    where: { userId: userId },
+  });
+
+  if (session) {
+    const partnerId = session.partnerId;
+    await prisma.activeChatSession.deleteMany({
+      where: {
+        userId: { in: [userId, partnerId] },
+      },
+    });
+    return parseInt(partnerId, 10);
   }
   return null;
 }
@@ -299,7 +324,7 @@ bot.on("message", async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  const partnerId = activeChats.get(userId);
+  const partnerId = await getPartnerId(userId.toString());
 
   if (partnerId) {
     // Don't forward commands
