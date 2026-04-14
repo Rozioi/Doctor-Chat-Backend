@@ -226,10 +226,10 @@ export const ChatController = {
 
       // Clear active chats in bot
       if (chat.patient && chat.patient.telegramId) {
-        clearActiveChat(Number(chat.patient.telegramId));
+        await clearActiveChat(chat.patient.telegramId);
       }
       if (chat.doctor && chat.doctor.telegramId) {
-        clearActiveChat(Number(chat.doctor.telegramId));
+        await clearActiveChat(chat.doctor.telegramId);
       }
 
       if (chat.tariffType === "VIP") {
